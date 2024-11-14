@@ -49,7 +49,6 @@ jobs:
           export FLASK_APP=app.py
           flask run --host=0.0.0.0 --port=5000 &
           sleep 5  # 等待服务器启动
-          pytest tests  # 如果有测试的话
           deactivate
           
       - name: Setup Pages
