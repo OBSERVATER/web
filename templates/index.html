@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="../static/login.css">
     <title>登录</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <form id="f">
+    <form id="f" class="form-login">
         <label>账号：</label>
         <input type="text" name="username" id="account"><br>
         <label>密码：</label>
@@ -16,12 +17,19 @@
         <button id="btn">submit</button>
     </form>
     <pre id="output">输出：</pre><br>
+    <pre id="outputlog"></pre><br>
     <script>
+
+    var socket = new WebSocket('/log');
+
     $(document).ready(function () {
         $('#btn').click(function() {
             event.preventDefault();
             const x = $('#account').val();
             const y = $('#password').val();
+            
+            $('#outputlog').text("正在签到");
+
             $.ajax({
                  url: '/run-script',
                     type: 'POST',
@@ -32,10 +40,11 @@
                         if ("签到成功" in response.output) {
                             alert("签到成功！")
                         }
+                        $('#outputlog').text("签到成功");
                     },
                     error: function (error) {
                         $('#output').text('Error: ' + error.responseText);
-                }
+                    }
             });
         });
     });
