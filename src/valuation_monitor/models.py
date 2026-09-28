@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Any
 
 
 METRIC_LABELS = {
@@ -17,11 +18,7 @@ HIGHER_IS_CHEAPER = {"dyr"}
 @dataclass(frozen=True)
 class MetricSpec:
     key: str
-    weighting: str = "mcw"
-
-    @property
-    def source_key(self) -> str:
-        return f"{self.key}.{self.weighting}"
+    weighting: str = "aggregate"
 
     @property
     def label(self) -> str:
@@ -39,6 +36,7 @@ class Instrument:
     market: str
     code: str
     metrics: tuple[MetricSpec, ...]
+    source: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -53,6 +51,7 @@ class Observation:
     value: float
     point: float | None
     source: str
+    reported_percentile: float | None = None
 
 
 @dataclass(frozen=True)
