@@ -36,6 +36,26 @@ class PublicDataClient:
 
     def fetch_latest(self, instrument: Instrument, end: date | None = None) -> list[Observation]:
         source_type = str(instrument.source.get("type", "")).strip()
+        if source_type == "chain":
+            errors = []
+            for candidate in instrument.source.get("sources", []):
+                chained = Instrument(
+                    id=instrument.id,
+                    name=instrument.name,
+                    market=instrument.market,
+                    code=instrument.code,
+                    metrics=instrument.metrics,
+                    source=dict(candidate),
+                )
+                try:
+                    rows = self.fetch_latest(chained, end=end)
+                    if rows:
+                        return rows
+                except Exception as exc:
+                    errors.append(f"{candidate.get('type')}: {exc}")
+            raise PublicSourceError(
+                f"All public sources failed for {instrument.name}: " + " | ".join(errors)
+            )
         if source_type == "danjuan":
             return self._fetch_danjuan(instrument)
         if source_type == "cni":
