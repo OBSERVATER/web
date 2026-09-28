@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 
 def main() -> None:
     data = json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
+    report_day = data["generated_at"]
+    repo = os.getenv("GITHUB_REPOSITORY", "OBSERVATER/web")
+    image_url = f"https://raw.githubusercontent.com/{repo}/main/reports/{report_day}.png?v={report_day}"
+
     lines = [
         "@OBSERVATER",
         "",
-        f"## 指数估值日报 · {data['generated_at']}",
+        f"## 指数估值日报 · {report_day}",
         "",
-        "![指数估值日报](out/report.png)",
+        f"![指数估值日报]({image_url})",
     ]
 
     errors = data.get("errors") or []
