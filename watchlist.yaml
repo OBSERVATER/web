@@ -2,6 +2,7 @@ settings:
   timezone: Asia/Shanghai
   history_years: 10
   frequency: weekly
+  minimum_history_weeks: 450
 
 instruments:
   - id: value100
@@ -9,45 +10,64 @@ instruments:
     market: cn
     code: "980081"
     metrics:
-      pe_ttm:
-        weighting: mcw
+      pe_ttm: {}
+    source:
+      type: chain
+      sources:
+        - type: danjuan
+          name: 价值100
+        - type: cni
 
   - id: csi_dividend
     name: 中证红利
     market: cn
     code: "000922"
     metrics:
-      dyr:
-        weighting: mcw
+      dyr: {}
+    source:
+      type: csindex_indicator
+      dyr_field: dyr2
 
   - id: hscgsi
     name: 恒生消费
     market: hk
     code: "HSCGSI"
     metrics:
-      pb:
-        weighting: mcw
+      pb: {}
+    source:
+      type: public_page
+      url: "https://getstockcheck.com/en/index/HSCGSI.HK/"
+      patterns:
+        pb: "(?:P/B|Price.?to.?Book|PB)[^0-9]{0,40}([0-9]+(?:\\.[0-9]+)?)"
 
   - id: pharma50
     name: 医药50
     market: cn
     code: "931140"
     metrics:
-      pb:
-        weighting: mcw
+      pb: {}
+    source:
+      type: danjuan
+      name: 医药50
 
   - id: hstech
     name: 恒生科技
     market: hk
     code: "HSTECH"
     metrics:
-      ps_ttm:
-        weighting: mcw
+      ps_ttm: {}
+    source:
+      type: public_page
+      url: "https://baifenwei.com/index/hstech/"
+      patterns:
+        ps_ttm: "(?:市销率(?:TTM)?|PS(?:-TTM)?)[^0-9]{0,50}([0-9]+(?:\\.[0-9]+)?)"
 
   - id: sp500
     name: 标普500
     market: us
-    code: ".INX"
+    code: "SP500"
     metrics:
-      pe_ttm:
-        weighting: mcw
+      pe_ttm: {}
+    source:
+      type: danjuan
+      name: 标普500
