@@ -22,6 +22,11 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Install CJK fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
@@ -35,12 +40,14 @@ jobs:
           PYTHONPATH: src
         run: |
           python -m valuation_monitor.app             --config watchlist.yaml             --history data/history.csv             --latest data/latest.json             --report out/report.html             --as-of-date 2026-09-28
+          python scripts/render_report_image.py
           python scripts/build_issue_comment.py
 
-      - name: Post 2026-09-28 report
+      - name: Post 2026-09-28 report image
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh issue comment 1 --repo "${{ github.repository }}" --body-file out/issue-comment.md
+        run: |
+          gh issue comment 1             --repo "${{ github.repository }}"             --body-file out/issue-comment.md             --attach "out/report.png#2026-09-28指数估值日报"
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
@@ -48,5 +55,6 @@ jobs:
           name: valuation-report-2026-09-28
           path: |
             out/report.html
+            out/report.png
             data/latest.json
           retention-days: 14
