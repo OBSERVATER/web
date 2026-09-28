@@ -1,0 +1,1 @@
+"""Cloud index valuation monitor."""
