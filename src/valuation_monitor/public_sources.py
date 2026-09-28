@@ -203,16 +203,20 @@ class PublicDataClient:
             return []
 
         columns = list(frame.columns)
-        if len(columns) < 6:
+        if len(columns) < 10:
             raise PublicSourceError(f"Unexpected CSI indicator columns: {columns}")
 
         frame = frame.rename(columns={
             columns[0]: "day",
             columns[1]: "code",
-            columns[2]: "pe1",
-            columns[3]: "pe2",
-            columns[4]: "dyr1",
-            columns[5]: "dyr2",
+            columns[2]: "name_full",
+            columns[3]: "name_short",
+            columns[4]: "name_en_full",
+            columns[5]: "name_en_short",
+            columns[6]: "pe1",
+            columns[7]: "pe2",
+            columns[8]: "dyr1",
+            columns[9]: "dyr2",
         })
         frame["day"] = pd.to_datetime(frame["day"], errors="coerce").dt.date
         frame = frame.dropna(subset=["day"]).sort_values("day")
