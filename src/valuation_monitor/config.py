@@ -20,7 +20,7 @@ def load_config(path: str | Path) -> tuple[dict, list[Instrument]]:
         else:
             for key, options in raw_metrics.items():
                 options = options or {}
-                metrics.append(MetricSpec(key=str(key), weighting=str(options.get("weighting", "mcw"))))
+                metrics.append(MetricSpec(key=str(key), weighting=str(options.get("weighting", "aggregate"))))
 
         instruments.append(
             Instrument(
@@ -29,6 +29,7 @@ def load_config(path: str | Path) -> tuple[dict, list[Instrument]]:
                 market=str(item["market"]).lower(),
                 code=str(item["code"]),
                 metrics=tuple(metrics),
+                source=dict(item.get("source") or {}),
             )
         )
 
