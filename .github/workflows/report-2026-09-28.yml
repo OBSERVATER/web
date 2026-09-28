@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -41,13 +41,26 @@ jobs:
         run: |
           python -m valuation_monitor.app             --config watchlist.yaml             --history data/history.csv             --latest data/latest.json             --report out/report.html             --as-of-date 2026-09-28
           python scripts/render_report_image.py
+          mkdir -p reports
+          cp out/report.png reports/2026-09-28.png
           python scripts/build_issue_comment.py
+
+      - name: Publish report image to repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add reports/2026-09-28.png
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "report: add 2026-09-28 valuation image [skip ci]"
+            git push
+          fi
 
       - name: Post 2026-09-28 report image
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment 1             --repo "${{ github.repository }}"             --body-file out/issue-comment.md             --attach "out/report.png#2026-09-28指数估值日报"
+        run: gh issue comment 1 --repo "${{ github.repository }}" --body-file out/issue-comment.md
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
