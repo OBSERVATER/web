@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -21,12 +21,12 @@ def observations_for(history: list[Observation], instrument_id: str, metric: str
     ]
 
 
-def run(config_path: str, history_path: str, latest_path: str, report_path: str) -> None:
+def run(config_path: str, history_path: str, latest_path: str, report_path: str, as_of_date: str | None = None) -> None:
     settings, instruments = load_config(config_path)
     years = int(settings.get("history_years", 10))
     minimum_history_weeks = int(settings.get("minimum_history_weeks", 450))
     timezone = str(settings.get("timezone", "Asia/Shanghai"))
-    today = datetime.now(ZoneInfo(timezone)).date()
+    today = date.fromisoformat(as_of_date) if as_of_date else datetime.now(ZoneInfo(timezone)).date()
     cutoff = subtract_years(today, years)
     client = PublicDataClient()
     history = load_history(history_path)
@@ -111,12 +111,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--history", default="data/history.csv")
     parser.add_argument("--latest", default="data/latest.json")
     parser.add_argument("--report", default="out/report.html")
+    parser.add_argument("--as-of-date", default=None)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    run(args.config, args.history, args.latest, args.report)
+    run(args.config, args.history, args.latest, args.report, args.as_of_date)
 
 
 if __name__ == "__main__":
