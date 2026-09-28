@@ -1,0 +1,52 @@
+name: Generate 2026-09-28 valuation report
+
+on:
+  push:
+    paths:
+      - ".github/workflows/report-2026-09-28.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Unit tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -v
+
+      - name: Build 2026-09-28 report
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m valuation_monitor.app             --config watchlist.yaml             --history data/history.csv             --latest data/latest.json             --report out/report.html             --as-of-date 2026-09-28
+          python scripts/build_issue_comment.py
+
+      - name: Post 2026-09-28 report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 1 --repo "${{ github.repository }}" --body-file out/issue-comment.md
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: valuation-report-2026-09-28
+          path: |
+            out/report.html
+            data/latest.json
+          retention-days: 14
