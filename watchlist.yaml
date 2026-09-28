@@ -1,0 +1,53 @@
+settings:
+  timezone: Asia/Shanghai
+  history_years: 10
+  frequency: weekly
+
+instruments:
+  - id: value100
+    name: 价值100
+    market: cn
+    code: "980081"
+    metrics:
+      pe_ttm:
+        weighting: mcw
+
+  - id: csi_dividend
+    name: 中证红利
+    market: cn
+    code: "000922"
+    metrics:
+      dyr:
+        weighting: mcw
+
+  - id: hscgsi
+    name: 恒生消费
+    market: hk
+    code: "HSCGSI"
+    metrics:
+      pb:
+        weighting: mcw
+
+  - id: pharma50
+    name: 医药50
+    market: cn
+    code: "931140"
+    metrics:
+      pb:
+        weighting: mcw
+
+  - id: hstech
+    name: 恒生科技
+    market: hk
+    code: "HSTECH"
+    metrics:
+      ps_ttm:
+        weighting: mcw
+
+  - id: sp500
+    name: 标普500
+    market: us
+    code: ".INX"
+    metrics:
+      pe_ttm:
+        weighting: mcw
