@@ -218,7 +218,11 @@ class PublicDataClient:
             columns[8]: "dyr1",
             columns[9]: "dyr2",
         })
-        frame["day"] = pd.to_datetime(frame["day"], errors="coerce").dt.date
+        frame["day"] = pd.to_datetime(
+            frame["day"].astype(str).str.replace(r"\\.0$", "", regex=True),
+            format="%Y%m%d",
+            errors="coerce",
+        ).dt.date
         frame = frame.dropna(subset=["day"]).sort_values("day")
         if not all_rows:
             frame = frame.tail(1)
