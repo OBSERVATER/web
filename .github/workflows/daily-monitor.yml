@@ -46,13 +46,29 @@ jobs:
         run: |
           python -m valuation_monitor.app             --config watchlist.yaml             --history data/history.csv             --latest data/latest.json             --report out/report.html
           python scripts/render_report_image.py
+          REPORT_DAY="$(python -c 'import json; print(json.load(open("data/latest.json"))["generated_at"])')"
+          mkdir -p reports
+          cp out/report.png "reports/$REPORT_DAY.png"
           python scripts/build_issue_comment.py
+
+      - name: Persist history and report image
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add data/history.csv data/latest.json reports/
+          if git diff --cached --quiet; then
+            echo "No repository changes"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "data: update valuation report [skip ci]"
+            git push
+          fi
 
       - name: Post GitHub Issue report image
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment 1             --repo "${{ github.repository }}"             --body-file out/issue-comment.md             --attach "out/report.png#指数估值日报"
+        run: gh issue comment 1 --repo "${{ github.repository }}" --body-file out/issue-comment.md
 
       - name: Upload report artifacts
         uses: actions/upload-artifact@v4
@@ -63,17 +79,3 @@ jobs:
             out/report.png
             data/latest.json
           retention-days: 14
-
-      - name: Persist history
-        shell: bash
-        run: |
-          set -euo pipefail
-          git add data/history.csv data/latest.json
-          if git diff --cached --quiet; then
-            echo "No history changes"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "data: update valuation history [skip ci]"
-          git push
