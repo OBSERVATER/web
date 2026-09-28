@@ -19,6 +19,7 @@ FIELDS = [
     "value",
     "point",
     "source",
+    "reported_percentile",
 ]
 
 
@@ -37,10 +38,11 @@ def load_history(path: str | Path) -> list[Observation]:
                     market=row["market"],
                     code=row["code"],
                     metric=row["metric"],
-                    weighting=row.get("weighting") or "mcw",
+                    weighting=row.get("weighting") or "aggregate",
                     value=float(row["value"]),
                     point=float(row["point"]) if row.get("point") else None,
                     source=row.get("source") or "unknown",
+                    reported_percentile=float(row["reported_percentile"]) if row.get("reported_percentile") else None,
                 )
             )
     return result
@@ -58,6 +60,9 @@ def save_history(path: str | Path, observations: list[Observation]) -> None:
             row["day"] = item.day.isoformat()
             row["point"] = "" if item.point is None else f"{item.point:.12g}"
             row["value"] = f"{item.value:.12g}"
+            row["reported_percentile"] = (
+                "" if item.reported_percentile is None else f"{item.reported_percentile:.12g}"
+            )
             writer.writerow(row)
 
 
