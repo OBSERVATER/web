@@ -1,13 +1,7 @@
-name: Verify valuation sources
+name: Verify public valuation sources
 
 on:
   workflow_dispatch:
-    inputs:
-      date:
-        description: "Benchmark date"
-        required: true
-        default: "2026-09-28"
-        type: string
 
 permissions:
   contents: read
@@ -16,8 +10,6 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      LIXINGER_TOKEN: ${{ secrets.LIXINGER_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +21,7 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Compare reference snapshots
+      - name: Compare public sources with reference snapshots
         env:
           PYTHONPATH: src
-        run: python scripts/verify_benchmarks.py --date "${{ inputs.date }}"
+        run: python scripts/verify_benchmarks.py
