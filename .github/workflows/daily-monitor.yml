@@ -5,15 +5,10 @@ on:
     - cron: "35 7 * * 1-5"
       timezone: "Asia/Shanghai"
   workflow_dispatch:
-    inputs:
-      send_mail:
-        description: "Send the generated report by email"
-        required: true
-        type: boolean
-        default: false
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: valuation-monitor
@@ -23,14 +18,6 @@ jobs:
   monitor:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      SMTP_HOST: ${{ secrets.SMTP_HOST }}
-      SMTP_PORT: ${{ secrets.SMTP_PORT }}
-      SMTP_SECURITY: ${{ secrets.SMTP_SECURITY }}
-      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-      MAIL_FROM: ${{ secrets.MAIL_FROM }}
-      MAIL_TO: ${{ secrets.MAIL_TO }}
 
     steps:
       - uses: actions/checkout@v4
@@ -51,16 +38,18 @@ jobs:
       - name: Update valuation data and build report
         env:
           PYTHONPATH: src
-          SEND_MAIL_INPUT: ${{ inputs.send_mail }}
-          EVENT_NAME: ${{ github.event_name }}
-        shell: bash
         run: |
-          set -euo pipefail
-          EXTRA_ARGS=""
-          if [[ "$EVENT_NAME" == "schedule" || "$SEND_MAIL_INPUT" == "true" ]]; then
-            EXTRA_ARGS="--send-mail"
-          fi
-          python -m valuation_monitor.app             --config watchlist.yaml             --history data/history.csv             --latest data/latest.json             --report out/report.html             $EXTRA_ARGS
+          python -m valuation_monitor.app \
+            --config watchlist.yaml \
+            --history data/history.csv \
+            --latest data/latest.json \
+            --report out/report.html
+          python scripts/build_issue_comment.py
+
+      - name: Post GitHub Issue report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 1 --repo "${{ github.repository }}" --body-file out/issue-comment.md
 
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
