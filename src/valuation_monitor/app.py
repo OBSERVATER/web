@@ -2,32 +2,20 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .config import load_config
 from .history import load_history, merge_weekly, save_history
-from .lixinger import LixingerClient
 from .mailer import send_html
-from .models import Instrument, Observation
+from .models import Observation
+from .public_sources import PublicDataClient
 from .report import build_html, snapshot_to_dict, zone
 from .stats import calculate_snapshot, subtract_years, weekly_last
 
 
-def needs_backfill(history: list[Observation], instrument: Instrument, years: int, today: date) -> bool:
-    cutoff = subtract_years(today, years)
-    for metric in instrument.metrics:
-        rows = [x for x in history if x.instrument_id == instrument.id and x.metric == metric.key]
-        if not rows:
-            return True
-        earliest = min(x.day for x in rows)
-        if earliest > cutoff and (today - earliest).days < 730:
-            return True
-    return False
-
-
-def observations_for(history: list[Observation], instrument_id: str, metric: str, cutoff: date) -> list[Observation]:
+def observations_for(history: list[Observation], instrument_id: str, metric: str, cutoff):
     return [
         item for item in history
         if item.instrument_id == instrument_id and item.metric == metric and item.day >= cutoff
@@ -37,24 +25,31 @@ def observations_for(history: list[Observation], instrument_id: str, metric: str
 def run(config_path: str, history_path: str, latest_path: str, report_path: str, send_mail: bool) -> None:
     settings, instruments = load_config(config_path)
     years = int(settings.get("history_years", 10))
+    minimum_history_weeks = int(settings.get("minimum_history_weeks", 450))
     timezone = str(settings.get("timezone", "Asia/Shanghai"))
     today = datetime.now(ZoneInfo(timezone)).date()
     cutoff = subtract_years(today, years)
-    client = LixingerClient()
+    client = PublicDataClient()
     history = load_history(history_path)
 
     incoming: list[Observation] = []
     latest_by_key: dict[tuple[str, str], Observation] = {}
+    errors: list[str] = []
 
     for instrument in instruments:
-        if needs_backfill(history, instrument, years, today):
+        try:
             backfill = client.fetch_range(instrument, cutoff, today)
             incoming.extend(weekly_last(backfill))
+        except Exception as exc:
+            errors.append(f"{instrument.name} history: {exc}")
 
-        latest = client.fetch_latest(instrument, end=today)
-        incoming.extend(latest)
-        for item in latest:
-            latest_by_key[(item.instrument_id, item.metric)] = item
+        try:
+            latest = client.fetch_latest(instrument, end=today)
+            incoming.extend(latest)
+            for item in latest:
+                latest_by_key[(item.instrument_id, item.metric)] = item
+        except Exception as exc:
+            errors.append(f"{instrument.name} latest: {exc}")
 
     history = merge_weekly(history, incoming)
     history = [item for item in history if item.day >= subtract_years(today, years + 1)]
@@ -65,6 +60,8 @@ def run(config_path: str, history_path: str, latest_path: str, report_path: str,
         "generated_at": today.isoformat(),
         "history_years": years,
         "frequency": "weekly-last-trading-day",
+        "minimum_history_weeks": minimum_history_weeks,
+        "errors": errors,
         "items": [],
     }
 
@@ -77,9 +74,12 @@ def run(config_path: str, history_path: str, latest_path: str, report_path: str,
 
             rows = observations_for(history, instrument.id, metric.key, cutoff)
             values = [item.value for item in rows]
-            snapshot = calculate_snapshot(values, current_obs.value, metric.higher_is_cheaper)
-            report_rows.append((instrument, metric.key, current_obs.point, snapshot))
-            latest_json["items"].append({
+            snapshot = None
+            if len(values) >= minimum_history_weeks:
+                snapshot = calculate_snapshot(values, current_obs.value, metric.higher_is_cheaper)
+
+            report_rows.append((instrument, metric.key, current_obs, snapshot))
+            payload = {
                 "instrument_id": instrument.id,
                 "name": instrument.name,
                 "market": instrument.market,
@@ -89,18 +89,24 @@ def run(config_path: str, history_path: str, latest_path: str, report_path: str,
                 "source": current_obs.source,
                 "source_date": current_obs.day.isoformat(),
                 "point": current_obs.point,
-                "stats": snapshot_to_dict(snapshot),
-                "zone": zone(snapshot),
-            })
+                "current": current_obs.value,
+                "reported_percentile": current_obs.reported_percentile,
+                "history_samples": len(values),
+                "history_complete": len(values) >= minimum_history_weeks,
+            }
+            if snapshot is not None:
+                payload["stats"] = snapshot_to_dict(snapshot)
+                payload["zone"] = zone(snapshot)
+            latest_json["items"].append(payload)
 
-    html = build_html(today, report_rows)
+    html = build_html(today, report_rows, minimum_history_weeks, errors)
     Path(report_path).parent.mkdir(parents=True, exist_ok=True)
     Path(report_path).write_text(html, encoding="utf-8")
     Path(latest_path).parent.mkdir(parents=True, exist_ok=True)
     Path(latest_path).write_text(json.dumps(latest_json, ensure_ascii=False, indent=2), encoding="utf-8")
 
     if send_mail:
-        opportunity_count = sum(1 for item in latest_json["items"] if item["zone"] == "机会区")
+        opportunity_count = sum(1 for item in latest_json["items"] if item.get("zone") == "机会区")
         subject = f"估值日报 {today.isoformat()} | 机会区 {opportunity_count} 项"
         send_html(subject, html)
 
