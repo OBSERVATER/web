@@ -1,0 +1,26 @@
+name: Notification delivery test
+
+on:
+  push:
+    paths:
+      - ".github/workflows/notification-test.yml"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post bot notification test
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment 1 --repo "${{ github.repository }}" --body "@OBSERVATER
+
+          ## GitHub Actions 通知链路测试
+
+          这条评论由 **github-actions[bot]** 自动发布，不是你的账号自己发布。
+
+          如果 GitHub 通知设置允许 Participating / @mentions 的网页或邮件通知，这一次才是有效测试。"
