@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date
 
 from valuation_monitor.config import load_config
-from valuation_monitor.lixinger import LixingerClient
+from valuation_monitor.public_sources import PublicDataClient
 
 
 BENCHMARKS = [
@@ -20,25 +19,31 @@ BENCHMARKS = [
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="watchlist.yaml")
-    parser.add_argument("--date", default="2026-09-28")
     args = parser.parse_args()
 
-    target = date.fromisoformat(args.date)
     _, instruments = load_config(args.config)
     by_id = {x.id: x for x in instruments}
-    client = LixingerClient()
+    client = PublicDataClient()
 
-    print("| 指数 | 指标 | 参考值 | 数据源值 | 偏差 |")
-    print("|---|---|---:|---:|---:|")
+    print("| 指数 | 指标 | 参考值 | 公共源值 | 偏差 | 来源 |")
+    print("|---|---|---:|---:|---:|---|")
     for instrument_id, metric_key, expected in BENCHMARKS:
         instrument = by_id[instrument_id]
-        rows = client.fetch_on_date(instrument, target)
-        actual = next((x.value for x in rows if x.metric == metric_key), None)
-        if actual is None:
-            print(f"| {instrument.name} | {metric_key} | {expected:.4g} | — | — |")
+        try:
+            rows = client.fetch_latest(instrument)
+            row = next((x for x in rows if x.metric == metric_key), None)
+        except Exception as exc:
+            print(f"| {instrument.name} | {metric_key} | {expected:.4g} | — | — | ERROR: {exc} |")
             continue
-        delta_pct = (actual / expected - 1) * 100
-        print(f"| {instrument.name} | {metric_key} | {expected:.4g} | {actual:.4g} | {delta_pct:+.2f}% |")
+
+        if row is None:
+            print(f"| {instrument.name} | {metric_key} | {expected:.4g} | — | — | no value |")
+            continue
+        delta_pct = (row.value / expected - 1) * 100
+        print(
+            f"| {instrument.name} | {metric_key} | {expected:.4g} | "
+            f"{row.value:.4g} | {delta_pct:+.2f}% | {row.source} |"
+        )
 
 
 if __name__ == "__main__":
