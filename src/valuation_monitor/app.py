@@ -8,7 +8,6 @@ from zoneinfo import ZoneInfo
 
 from .config import load_config
 from .history import load_history, merge_weekly, save_history
-from .mailer import send_html
 from .models import Observation
 from .public_sources import PublicDataClient
 from .report import build_html, snapshot_to_dict, zone
@@ -22,7 +21,7 @@ def observations_for(history: list[Observation], instrument_id: str, metric: str
     ]
 
 
-def run(config_path: str, history_path: str, latest_path: str, report_path: str, send_mail: bool) -> None:
+def run(config_path: str, history_path: str, latest_path: str, report_path: str) -> None:
     settings, instruments = load_config(config_path)
     years = int(settings.get("history_years", 10))
     minimum_history_weeks = int(settings.get("minimum_history_weeks", 450))
@@ -105,11 +104,6 @@ def run(config_path: str, history_path: str, latest_path: str, report_path: str,
     Path(latest_path).parent.mkdir(parents=True, exist_ok=True)
     Path(latest_path).write_text(json.dumps(latest_json, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    if send_mail:
-        opportunity_count = sum(1 for item in latest_json["items"] if item.get("zone") == "机会区")
-        subject = f"估值日报 {today.isoformat()} | 机会区 {opportunity_count} 项"
-        send_html(subject, html)
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Cloud index valuation monitor")
@@ -117,13 +111,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--history", default="data/history.csv")
     parser.add_argument("--latest", default="data/latest.json")
     parser.add_argument("--report", default="out/report.html")
-    parser.add_argument("--send-mail", action="store_true")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    run(args.config, args.history, args.latest, args.report, args.send_mail)
+    run(args.config, args.history, args.latest, args.report)
 
 
 if __name__ == "__main__":
