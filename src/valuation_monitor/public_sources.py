@@ -135,7 +135,7 @@ class PublicDataClient:
             "secid": secid,
             "klt": "101",
             "fqt": "1",
-            "lmt": "50000",
+            "lmt": "10000",
             "beg": start.strftime("%Y%m%d"),
             "end": end.strftime("%Y%m%d"),
             "iscca": "1",
