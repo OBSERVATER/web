@@ -63,15 +63,20 @@ class PublicDataClient:
                 f"All public sources failed for {instrument.name}: " + " | ".join(errors)
             )
         if source_type == "reconstructed":
-            return self._fetch_reconstructed(instrument, end=end)
+            rows = self._fetch_reconstructed(instrument, end=end)
+            return self._attach_index_points(instrument, rows)
         if source_type == "danjuan":
-            return self._fetch_danjuan(instrument)
+            rows = self._fetch_danjuan(instrument)
+            return self._attach_index_points(instrument, rows)
         if source_type == "cni":
-            return self._fetch_cni(instrument)
+            rows = self._fetch_cni(instrument)
+            return self._attach_index_points(instrument, rows)
         if source_type == "csindex_indicator":
-            return self._fetch_csindex_indicator(instrument)
+            rows = self._fetch_csindex_indicator(instrument)
+            return self._attach_index_points(instrument, rows)
         if source_type == "public_page":
-            return self._fetch_public_page(instrument)
+            rows = self._fetch_public_page(instrument)
+            return self._attach_index_points(instrument, rows)
         raise PublicSourceError(f"Unsupported source type: {source_type!r} for {instrument.name}")
 
     def fetch_range(self, instrument: Instrument, start: date, end: date) -> list[Observation]:
@@ -96,19 +101,18 @@ class PublicDataClient:
                     errors.append(f"{candidate.get('type')}: {exc}")
             return []
 
+        rows: list[Observation] = []
         if source_type == "danjuan":
-            return self._fetch_danjuan_history(instrument, start, end)
-
-        if source_type == "csindex_indicator":
-            return [
+            rows = self._fetch_danjuan_history(instrument, start, end)
+        elif source_type == "csindex_indicator":
+            rows = [
                 item for item in self._fetch_csindex_indicator(instrument, all_rows=True)
                 if start <= item.day <= end
             ]
+        elif source_type == "public_page" and instrument.source.get("history_type") == "stockcheck_embedded":
+            rows = self._fetch_stockcheck_embedded_history(instrument, start, end)
 
-        if source_type == "public_page" and instrument.source.get("history_type") == "stockcheck_embedded":
-            return self._fetch_stockcheck_embedded_history(instrument, start, end)
-
-        return []
+        return self._attach_index_points(instrument, rows)
 
     def _get_json(self, url: str, **kwargs) -> Any:
         response = self.session.get(url, timeout=self.timeout, **kwargs)
@@ -125,6 +129,81 @@ class PublicDataClient:
             except Exception as exc:
                 last_exc = exc
         raise PublicSourceError(f"Public file source failed: {url}: {last_exc}")
+
+    def _eastmoney_index_points(self, secid: str, start: date, end: date) -> dict[date, float]:
+        params = {
+            "secid": secid,
+            "klt": "101",
+            "fqt": "1",
+            "lmt": "50000",
+            "beg": start.strftime("%Y%m%d"),
+            "end": end.strftime("%Y%m%d"),
+            "iscca": "1",
+            "fields1": "f1,f2,f3,f4,f5,f6,f7,f8",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64",
+            "ut": "f057cbcbce2a86e2866ab8877db1d059",
+            "forcect": "1",
+        }
+        payload = self._get_json(
+            "https://push2his.eastmoney.com/api/qt/stock/kline/get",
+            params=params,
+            headers={"Referer": "https://quote.eastmoney.com/"},
+        )
+        klines = (payload.get("data") or {}).get("klines") or []
+        result: dict[date, float] = {}
+        for line in klines:
+            parts = str(line).split(",")
+            if len(parts) < 3:
+                continue
+            try:
+                day = date.fromisoformat(parts[0])
+                close = float(parts[2])
+            except (TypeError, ValueError):
+                continue
+            result[day] = close
+        return result
+
+    def _attach_index_points(
+        self,
+        instrument: Instrument,
+        rows: list[Observation],
+    ) -> list[Observation]:
+        secid = str(instrument.source.get("point_secid", "")).strip()
+        if not secid or not rows:
+            return rows
+        start = min(item.day for item in rows) - timedelta(days=10)
+        end = max(item.day for item in rows) + timedelta(days=2)
+        try:
+            points = self._eastmoney_index_points(secid, start, end)
+        except Exception:
+            return rows
+        if not points:
+            return rows
+
+        point_days = sorted(points)
+        result: list[Observation] = []
+        for item in rows:
+            point = points.get(item.day)
+            if point is None:
+                prior = [d for d in point_days if d <= item.day]
+                if prior and (item.day - prior[-1]).days <= 7:
+                    point = points[prior[-1]]
+            result.append(
+                Observation(
+                    day=item.day,
+                    instrument_id=item.instrument_id,
+                    instrument_name=item.instrument_name,
+                    market=item.market,
+                    code=item.code,
+                    metric=item.metric,
+                    weighting=item.weighting,
+                    value=item.value,
+                    point=point if point is not None else item.point,
+                    source=item.source,
+                    reported_percentile=item.reported_percentile,
+                )
+            )
+        return result
 
     def _eastmoney_market_snapshot(self, target: date) -> tuple[date, pd.DataFrame]:
         for offset in range(0, 8):
