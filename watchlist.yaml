@@ -39,6 +39,8 @@ instruments:
       url: "https://getstockcheck.com/en/index/HSCGSI.HK/"
       patterns:
         pb: "(?:P/B|Price.?to.?Book|PB)[^0-9]{0,40}([0-9]+(?:\\.[0-9]+)?)"
+      percentile_patterns:
+        pb: "P/B\\s+sits\\s+at\\s+the\\s+([0-9]+(?:\\.[0-9]+)?)th\\s+percentile\\s+over\\s+the\\s+trailing\\s+10Y"
 
   - id: pharma50
     name: 医药50
@@ -49,6 +51,7 @@ instruments:
     source:
       type: danjuan
       name: 医药50
+      index_code: "CSI931140"
 
   - id: hstech
     name: 恒生科技
@@ -61,6 +64,8 @@ instruments:
       url: "https://baifenwei.com/index/hstech/"
       patterns:
         ps_ttm: "(?:市销率(?:TTM)?|PS(?:-TTM)?)[^0-9]{0,50}([0-9]+(?:\\.[0-9]+)?)"
+      percentile_patterns:
+        ps_ttm: "PS.*?近\\s*10\\s*年百分位\\s*([0-9]+(?:\\.[0-9]+)?)%"
 
   - id: sp500
     name: 标普500
@@ -71,3 +76,4 @@ instruments:
     source:
       type: danjuan
       name: 标普500
+      index_code: "SP500"
