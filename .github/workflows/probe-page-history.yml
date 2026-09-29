@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - ".github/workflows/probe-page-history.yml"
+      - "scripts/probe_page_history.py"
   workflow_dispatch:
 permissions:
   contents: read
