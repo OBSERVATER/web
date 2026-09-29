@@ -12,7 +12,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 WIDTH = 1080
 HEIGHT = 720
-LEFT_W = 255
 PANEL_X = 20
 PANEL_Y = 88
 PANEL_W = 1040
@@ -133,6 +132,13 @@ def dashed_hline(draw, y, x1, x2, fill, width=3, dash=12, gap=8):
 def draw_stat(draw, x_label, x_value, y, label, value, f, muted=False):
     txt(draw, (x_label, y), label, f["label"], MUTED if muted else TEXT)
     txt(draw, (x_value, y), value, f["value"], TEXT, anchor="ra")
+
+
+def draw_summary_card(draw, box, label, value, f, accent=TEXT):
+    x1, y1, x2, y2 = box
+    draw.rounded_rectangle(box, radius=8, fill="#F7F8FA")
+    txt(draw, (x1 + 14, y1 + 12), label, f["small"], MUTED)
+    txt(draw, (x1 + 14, y2 - 13), value, f["value"], accent, anchor="ls")
 
 
 def line_points(series, x1, y1, x2, y2, min_day, max_day, lo, hi, key):
@@ -299,17 +305,18 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
         r for r in history
         if r["instrument_id"] == spec["id"] and r["metric"] == metric
     ]
-    raw_history_count = sum(1 for r in relevant if r.get("value") is not None and float(r.get("value") or 0) > 0)
+    raw_history_count = sum(
+        1 for r in relevant
+        if r.get("value") is not None and float(r.get("value") or 0) > 0
+    )
     pct_history_count = sum(1 for r in relevant if r.get("reported_percentile") is not None)
     percentile_mode = raw_history_count < 3 and pct_history_count >= 3
 
-    # header bar, mirroring the reference's data header
     draw.rectangle((0, 0, WIDTH, 70), fill="#E9E9E9")
     txt(draw, (24, 22), name, f["head"])
-    txt(draw, (180, 27), code, f["head_code"], TEXT)
-    if point is not None:
-        txt(draw, (330, 26), f"{float(point):,.2f}", f["head_code"], RED)
-    txt(draw, (WIDTH - 24, 29), f"{report_day} · 历史估值", f["head_code"], MUTED, anchor="ra")
+    name_width = draw.textbbox((0, 0), name, font=f["head"])[2]
+    txt(draw, (36 + name_width, 28), code, f["head_code"], MUTED)
+    txt(draw, (WIDTH - 24, 29), f"{report_day} · 近10年估值", f["head_code"], MUTED, anchor="ra")
 
     draw.rounded_rectangle(
         (PANEL_X, PANEL_Y, PANEL_X + PANEL_W, PANEL_Y + PANEL_H),
@@ -317,120 +324,76 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
         fill=PANEL,
     )
 
-    txt(draw, (PANEL_X + 18, PANEL_Y + 16), metric_label(metric), f["metric_title"])
-
-    # Wind-style data-view tabs shown inside the valuation panel.
-    tab_y1 = PANEL_Y + 13
-    tab_y2 = PANEL_Y + 49
-    tab_w = 118
-    tab_x3 = PANEL_X + PANEL_W - 18
-    tab_x2 = tab_x3 - tab_w
-    tab_x1 = tab_x2 - tab_w
-    tab_x0 = tab_x1 - tab_w
-    tabs = [
-        (tab_x0, tab_x1, metric_label(metric), not percentile_mode),
-        (tab_x1, tab_x2, "分位点", percentile_mode),
-        (tab_x2, tab_x3, "标准差", False),
-    ]
-    for left, right, label, active in tabs:
-        fill = "#4EAFC3" if active else "#FFFFFF"
-        color = "#FFFFFF" if active else TEXT
-        draw.rectangle((left, tab_y1, right, tab_y2), fill=fill, outline="#BFC4C9", width=1)
-        txt(draw, ((left + right) / 2, (tab_y1 + tab_y2) / 2), label, f["small"], color, anchor="mm")
-
-    left_x = PANEL_X + 20
-    value_x = PANEL_X + LEFT_W - 14
-    y = PANEL_Y + 76
-
     stats = item.get("stats") if item else None
     reported = item.get("reported_percentile") if item else None
     percentile = stats.get("percentile") if stats else reported
 
-    draw_stat(draw, left_x, value_x, y, "当前值", fmt(metric, current), f)
-    y += 42
-    draw_stat(draw, left_x, value_x, y, "分位点", "—" if percentile is None else f"{float(percentile) * 100:.2f}%", f)
-    y += 42
-    draw_stat(draw, left_x, value_x, y, "危险值", fmt(metric, stats.get("danger") if stats else None), f)
-    y += 42
-    draw_stat(draw, left_x, value_x, y, "中位数", fmt(metric, stats.get("median") if stats else None), f)
-    y += 42
-    draw_stat(draw, left_x, value_x, y, "机会值", fmt(metric, stats.get("opportunity") if stats else None), f)
-    y += 42
-    draw_stat(draw, left_x, value_x, y, "指数点位", "—" if point is None else f"{float(point):,.2f}", f)
+    top = PANEL_Y + 18
+    gap = 10
+    inner_x = PANEL_X + 18
+    inner_w = PANEL_W - 36
+    card_w = (inner_w - gap * 4) / 5
+    summary = [
+        ("当前值", fmt(metric, current), TEXT),
+        ("10Y分位", "—" if percentile is None else f"{float(percentile) * 100:.1f}%", TEXT),
+        ("机会值", fmt(metric, stats.get("opportunity") if stats else None), GREEN),
+        ("中位数", fmt(metric, stats.get("median") if stats else None), TEXT),
+        ("危险值", fmt(metric, stats.get("danger") if stats else None), RED),
+    ]
+    for i, (label, value, accent) in enumerate(summary):
+        x1 = inner_x + i * (card_w + gap)
+        draw_summary_card(draw, (x1, top, x1 + card_w, top + 72), label, value, f, accent)
 
-    y += 52
-    draw.rounded_rectangle(
-        (left_x - 8, y - 18, value_x + 8, PANEL_Y + PANEL_H - 40),
-        radius=8,
-        fill="#F7F8FA",
-    )
-    draw_stat(draw, left_x, value_x, y, "最大值", fmt(metric, stats.get("maximum") if stats else None), f)
-    y += 38
-    draw_stat(draw, left_x, value_x, y, "平均值", fmt(metric, stats.get("mean") if stats else None), f)
-    y += 38
-    draw_stat(draw, left_x, value_x, y, "最小值", fmt(metric, stats.get("minimum") if stats else None), f)
-    y += 38
+    chart_x1 = PANEL_X + 72
+    chart_y1 = PANEL_Y + 112
+    chart_x2 = PANEL_X + PANEL_W - 70
+    chart_y2 = PANEL_Y + PANEL_H - 116
+
+    # Keep the visual focus on valuation history. Index point remains in the footer
+    # instead of sharing a second y-axis with the valuation line.
+    chart_rows = [{**r, "point": None} for r in relevant]
+    draw_chart(draw, (chart_x1, chart_y1, chart_x2, chart_y2), metric, chart_rows, stats, f)
+
+    footer_y = PANEL_Y + PANEL_H - 88
+    draw.line((PANEL_X + 18, footer_y - 14, PANEL_X + PANEL_W - 18, footer_y - 14), fill=GRID, width=1)
+
     if stats:
-        plus = (stats.get("mean") or 0) + (stats.get("stddev") or 0)
-        minus = (stats.get("mean") or 0) - (stats.get("stddev") or 0)
+        footer = [
+            ("10Y最低", fmt(metric, stats.get("minimum"))),
+            ("10Y平均", fmt(metric, stats.get("mean"))),
+            ("10Y最高", fmt(metric, stats.get("maximum"))),
+            ("样本", str(stats.get("sample_count", raw_history_count))),
+            ("指数点位", "—" if point is None else f"{float(point):,.2f}"),
+        ]
     else:
-        plus = minus = None
-    draw_stat(draw, left_x, value_x, y, "标准差(+1)", fmt(metric, plus), f)
-    y += 38
-    draw_stat(draw, left_x, value_x, y, "标准差(-1)", fmt(metric, minus), f)
-    y += 38
-    draw_stat(draw, left_x, value_x, y, "z 分数", "—" if not stats else f"{float(stats.get('zscore', 0)):.2f}", f)
+        footer = [
+            ("历史样本", str(raw_history_count)),
+            ("分位样本", str(pct_history_count)),
+            ("指数点位", "—" if point is None else f"{float(point):,.2f}"),
+            ("数据状态", "分位历史" if percentile_mode else "回填中"),
+            ("目标", "10Y / 450周"),
+        ]
 
-    chart_x1 = PANEL_X + LEFT_W + 28
-    chart_y1 = PANEL_Y + 78
-    chart_x2 = PANEL_X + PANEL_W - 68
-    chart_y2 = PANEL_Y + PANEL_H - 82
+    col_w = (PANEL_W - 36) / 5
+    for i, (label, value) in enumerate(footer):
+        x = PANEL_X + 18 + i * col_w
+        txt(draw, (x, footer_y), label, f["small"], MUTED)
+        txt(draw, (x, footer_y + 28), value, f["legend"], TEXT)
 
-    draw_chart(draw, (chart_x1, chart_y1, chart_x2, chart_y2), metric, relevant, stats, f)
-
-    # Keep only visible chart elements in the legend; the reference screenshot's disabled
-    # legend items made the mobile image unnecessarily dense.
-    ly = PANEL_Y + PANEL_H - 34
-    lx = chart_x1 + 6
+    ly = PANEL_Y + PANEL_H - 18
+    lx = PANEL_X + 22
     if percentile_mode:
         draw.line((lx, ly, lx + 24, ly), fill="#D89A27", width=3)
         txt(draw, (lx + 32, ly), "历史分位", f["small"], TEXT, anchor="lm")
-        lx += 120
-        draw.line((lx, ly, lx + 24, ly), fill=BLUE, width=3)
-        txt(draw, (lx + 32, ly), "指数点位", f["small"], TEXT, anchor="lm")
-        lx += 122
-        dashed_hline(draw, ly, lx, lx + 24, GREEN, width=2, dash=6, gap=4)
-        txt(draw, (lx + 32, ly), "20%", f["small"], TEXT, anchor="lm")
-        lx += 78
-        dashed_hline(draw, ly, lx, lx + 24, GRAY_DASH, width=2, dash=6, gap=4)
-        txt(draw, (lx + 32, ly), "50%", f["small"], TEXT, anchor="lm")
-        lx += 78
-        dashed_hline(draw, ly, lx, lx + 24, RED, width=2, dash=6, gap=4)
-        txt(draw, (lx + 32, ly), "80%", f["small"], TEXT, anchor="lm")
     else:
-        draw.ellipse((lx, ly - 7, lx + 14, ly + 7), fill=CYAN)
-        txt(draw, (lx + 22, ly), metric_label(metric), f["small"], TEXT, anchor="lm")
-        lx += 145
-        if any(r.get("point") is not None for r in relevant):
-            draw.line((lx, ly, lx + 24, ly), fill=BLUE, width=3)
-            txt(draw, (lx + 32, ly), "指数点位", f["small"], TEXT, anchor="lm")
-            lx += 122
+        draw.ellipse((lx, ly - 6, lx + 12, ly + 6), fill=CYAN)
+        txt(draw, (lx + 20, ly), metric_label(metric), f["small"], TEXT, anchor="lm")
+        lx += 150
         if stats:
-            dashed_hline(draw, ly, lx, lx + 24, RED, width=2, dash=6, gap=4)
-            txt(draw, (lx + 32, ly), "危险值", f["small"], TEXT, anchor="lm")
-            lx += 105
-            dashed_hline(draw, ly, lx, lx + 24, GRAY_DASH, width=2, dash=6, gap=4)
-            txt(draw, (lx + 32, ly), "中位数", f["small"], TEXT, anchor="lm")
-            lx += 105
-            dashed_hline(draw, ly, lx, lx + 24, GREEN, width=2, dash=6, gap=4)
-            txt(draw, (lx + 32, ly), "机会值", f["small"], TEXT, anchor="lm")
-
-    if not stats:
-        src_pct = ""
-        if reported is not None:
-            src_pct = f" · 当前公开分位 {float(reported)*100:.2f}%"
-        note = "已取得历史分位序列，原始估值序列仍在回填" if percentile_mode else "完整10Y原始序列仍在回填"
-        txt(draw, (PANEL_X + 20, PANEL_Y + PANEL_H - 18), note + src_pct, f["small"], MUTED)
+            for label, color in (("机会", GREEN), ("中位", GRAY_DASH), ("危险", RED)):
+                dashed_hline(draw, ly, lx, lx + 20, color, width=2, dash=5, gap=4)
+                txt(draw, (lx + 27, ly), label, f["small"], MUTED, anchor="lm")
+                lx += 86
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     image.save(out_path, format="PNG", optimize=True)
