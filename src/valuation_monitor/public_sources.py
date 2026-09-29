@@ -111,6 +111,8 @@ class PublicDataClient:
             ]
         elif source_type == "public_page" and instrument.source.get("history_type") == "stockcheck_embedded":
             rows = self._fetch_stockcheck_embedded_history(instrument, start, end)
+        elif source_type == "public_page" and instrument.source.get("history_type") == "baifenwei_percentile":
+            rows = self._fetch_baifenwei_percentile_history(instrument, start, end)
 
         return self._attach_index_points(instrument, rows)
 
@@ -596,6 +598,63 @@ class PublicDataClient:
                     point=None,
                     source="csindex-official-public",
                 ))
+        return result
+
+    def _fetch_baifenwei_percentile_history(
+        self,
+        instrument: Instrument,
+        start: date,
+        end: date,
+    ) -> list[Observation]:
+        url = str(instrument.source.get("url", "")).strip()
+        if not url:
+            return []
+        response = self.session.get(url, timeout=self.timeout)
+        response.raise_for_status()
+        match = re.search(r"var\s+d\s*=\s*(\[.*?\]);\s*var\s+ctx", response.text, re.S)
+        if not match:
+            return []
+
+        import json
+        try:
+            rows = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            return []
+
+        percentile_fields = {
+            "pe_ttm": "pe_pct",
+            "pb": "pb_pct",
+            "ps_ttm": "ps_pct",
+        }
+        result: list[Observation] = []
+        for metric in instrument.metrics:
+            field = percentile_fields.get(metric.key)
+            if not field:
+                continue
+            for row in rows:
+                try:
+                    day = date.fromisoformat(str(row.get("date")))
+                    pct = float(row.get(field))
+                except (TypeError, ValueError):
+                    continue
+                if not (start <= day <= end):
+                    continue
+                point = _as_float(row.get("point"))
+                result.append(
+                    Observation(
+                        day=day,
+                        instrument_id=instrument.id,
+                        instrument_name=instrument.name,
+                        market=instrument.market,
+                        code=instrument.code,
+                        metric=metric.key,
+                        weighting=metric.weighting,
+                        value=0.0,
+                        point=point,
+                        source="baifenwei-percentile-history",
+                        reported_percentile=pct / 100.0,
+                    )
+                )
         return result
 
     def _fetch_stockcheck_embedded_history(
