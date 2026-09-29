@@ -70,7 +70,8 @@ def get_csi_weights(code: str) -> pd.DataFrame:
     return out
 
 def weighted_harmonic(weights: pd.DataFrame, market: pd.DataFrame, field: str):
-    m=weights[["代码","权重"]].merge(market[["SECURITY_CODE",field]],left_on="代码",right_on="SECURITY_CODE",how="left")
+    cols=["SECURITY_CODE",field,"TOTAL_MARKET_CAP"]
+    m=weights[["代码","权重"]].merge(market[cols],left_on="代码",right_on="SECURITY_CODE",how="left")
     m=m.rename(columns={field:"x"})
     m["w"]=m["权重"]/100.0
     valid=m["x"].notna() & (m["x"]!=0) & m["w"].notna()
@@ -79,8 +80,23 @@ def weighted_harmonic(weights: pd.DataFrame, market: pd.DataFrame, field: str):
     result=1.0/denominator if denominator!=0 else float("nan")
     renorm=mv["w"].sum()
     renorm_result=renorm/denominator if denominator!=0 else float("nan")
-    print(field,"matched",len(mv),"/",len(m),"weight matched",renorm)
-    print("raw harmonic",result,"renormalized",renorm_result)
+    arithmetic=(mv["w"]*mv["x"]).sum()/renorm
+    pos=mv[mv["x"]>0].copy()
+    pos_w=pos["w"].sum()
+    pos_h=pos_w/(pos["w"]/pos["x"]).sum() if len(pos) else float("nan")
+    pos_a=(pos["w"]*pos["x"]).sum()/pos_w if len(pos) else float("nan")
+    eq_h=len(pos)/(1.0/pos["x"]).sum() if len(pos) else float("nan")
+    eq_a=pos["x"].mean() if len(pos) else float("nan")
+    cap=mv["TOTAL_MARKET_CAP"].where(mv["TOTAL_MARKET_CAP"]>0)
+    cap_valid=mv[cap.notna()].copy()
+    cap_w=cap_valid["TOTAL_MARKET_CAP"]/cap_valid["TOTAL_MARKET_CAP"].sum()
+    cap_h=1.0/(cap_w/cap_valid["x"]).sum()
+    cap_a=(cap_w*cap_valid["x"]).sum()
+    print(field,"matched",len(mv),"/",len(m),"weight matched",renorm,"positive",len(pos))
+    print("index-weight harmonic",result,"renormalized",renorm_result)
+    print("index-weight positive harmonic",pos_h,"arithmetic",pos_a)
+    print("equal positive harmonic",eq_h,"arithmetic",eq_a)
+    print("total-mcap harmonic",cap_h,"arithmetic",cap_a)
     missing=m[~valid][["代码","权重","x"]]
     if not missing.empty:
         print("missing/nonzero sample",missing.head(20).to_dict("records"))
