@@ -72,7 +72,11 @@ def run(config_path: str, history_path: str, latest_path: str, report_path: str,
                 continue
 
             rows = observations_for(history, instrument.id, metric.key, cutoff)
-            values = [item.value for item in rows]
+            values = [
+                item.value for item in rows
+                if item.value is not None and float(item.value) > 0
+            ]
+            percentile_samples = sum(item.reported_percentile is not None for item in rows)
             snapshot = None
             if len(values) >= minimum_history_weeks:
                 snapshot = calculate_snapshot(values, current_obs.value, metric.higher_is_cheaper)
@@ -91,6 +95,7 @@ def run(config_path: str, history_path: str, latest_path: str, report_path: str,
                 "current": current_obs.value,
                 "reported_percentile": current_obs.reported_percentile,
                 "history_samples": len(values),
+                "percentile_history_samples": percentile_samples,
                 "history_complete": len(values) >= minimum_history_weeks,
             }
             if snapshot is not None:
