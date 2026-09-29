@@ -104,6 +104,10 @@ class PublicDataClient:
                 item for item in self._fetch_csindex_indicator(instrument, all_rows=True)
                 if start <= item.day <= end
             ]
+
+        if source_type == "public_page" and instrument.source.get("history_type") == "stockcheck_embedded":
+            return self._fetch_stockcheck_embedded_history(instrument, start, end)
+
         return []
 
     def _get_json(self, url: str, **kwargs) -> Any:
@@ -513,6 +517,57 @@ class PublicDataClient:
                     point=None,
                     source="csindex-official-public",
                 ))
+        return result
+
+    def _fetch_stockcheck_embedded_history(
+        self,
+        instrument: Instrument,
+        start: date,
+        end: date,
+    ) -> list[Observation]:
+        url = str(instrument.source.get("url", "")).strip()
+        if not url:
+            return []
+        response = self.session.get(url, timeout=self.timeout)
+        response.raise_for_status()
+        match = re.search(r"window\.__SSG_CHART__\s*=\s*(\{.*?\});", response.text, re.S)
+        if not match:
+            return []
+
+        import json
+        payload = json.loads(match.group(1))
+        window = payload.get("10Y") or {}
+        dates = window.get("dates") or []
+        metric_map = {"pe_ttm": "pe", "pb": "pb"}
+        result: list[Observation] = []
+
+        for metric in instrument.metrics:
+            field = metric_map.get(metric.key)
+            if not field:
+                continue
+            values = window.get(field) or []
+            for raw_day, raw_value in zip(dates, values):
+                try:
+                    day = date.fromisoformat(str(raw_day))
+                    value = float(raw_value)
+                except (TypeError, ValueError):
+                    continue
+                if not (start <= day <= end):
+                    continue
+                result.append(
+                    Observation(
+                        day=day,
+                        instrument_id=instrument.id,
+                        instrument_name=instrument.name,
+                        market=instrument.market,
+                        code=instrument.code,
+                        metric=metric.key,
+                        weighting=metric.weighting,
+                        value=value,
+                        point=None,
+                        source="stockcheck-public-history",
+                    )
+                )
         return result
 
     def _fetch_public_page(self, instrument: Instrument) -> list[Observation]:
