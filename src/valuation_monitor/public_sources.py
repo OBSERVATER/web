@@ -83,7 +83,12 @@ class PublicDataClient:
         source_type = str(instrument.source.get("type", "")).strip()
 
         if source_type == "chain":
-            errors = []
+            # Historical chains are complementary, not just fallbacks.  The first
+            # configured source is authoritative for a week; later sources only
+            # fill weeks the earlier sources do not provide.  This keeps source
+            # methodologies from silently overwriting one another while still
+            # extending sparse public history.
+            chosen: dict[tuple[int, int, str], Observation] = {}
             for candidate in instrument.source.get("sources", []):
                 chained = Instrument(
                     id=instrument.id,
@@ -94,12 +99,24 @@ class PublicDataClient:
                     source=dict(candidate),
                 )
                 try:
-                    rows = self.fetch_range(chained, start, end)
-                    if rows:
-                        return rows
-                except Exception as exc:
-                    errors.append(f"{candidate.get('type')}: {exc}")
-            return []
+                    candidate_rows = self.fetch_range(chained, start, end)
+                except Exception:
+                    continue
+
+                # Keep the last trading observation from this candidate for each
+                # ISO week/metric, then only use it when a higher-priority source
+                # has not already supplied that week.
+                weekly: dict[tuple[int, int, str], Observation] = {}
+                for item in candidate_rows:
+                    iso = item.day.isocalendar()
+                    key = (iso.year, iso.week, item.metric)
+                    previous = weekly.get(key)
+                    if previous is None or item.day > previous.day:
+                        weekly[key] = item
+                for key, item in weekly.items():
+                    chosen.setdefault(key, item)
+
+            return sorted(chosen.values(), key=lambda x: (x.metric, x.day))
 
         rows: list[Observation] = []
         if source_type == "danjuan":
