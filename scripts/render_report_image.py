@@ -279,13 +279,13 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     tab_x3 = PANEL_X + PANEL_W - 18
     tab_x2 = tab_x3 - tab_w
     tab_x1 = tab_x2 - tab_w
-    draw.rounded_rectangle((tab_x1, tab_y1, tab_x2, tab_y2), radius=4, fill="#4EAFC3")
-    txt(draw, ((tab_x1 + tab_x2) / 2, (tab_y1 + tab_y2) / 2), metric_label(metric), f["small"], "#FFFFFF", anchor="mm")
-    draw.rectangle((tab_x2, tab_y1, tab_x3, tab_y2), fill="#FFFFFF", outline="#BFC4C9", width=1)
-    txt(draw, (tab_x2 + tab_w / 2, (tab_y1 + tab_y2) / 2), "分位点", f["small"], TEXT, anchor="mm")
     tab_x0 = tab_x1 - tab_w
-    draw.rectangle((tab_x0, tab_y1, tab_x1, tab_y2), fill="#FFFFFF", outline="#BFC4C9", width=1)
-    txt(draw, (tab_x0 + tab_w / 2, (tab_y1 + tab_y2) / 2), "标准差", f["small"], TEXT, anchor="mm")
+    draw.rounded_rectangle((tab_x0, tab_y1, tab_x1, tab_y2), radius=4, fill="#4EAFC3")
+    txt(draw, ((tab_x0 + tab_x1) / 2, (tab_y1 + tab_y2) / 2), metric_label(metric), f["small"], "#FFFFFF", anchor="mm")
+    draw.rectangle((tab_x1, tab_y1, tab_x2, tab_y2), fill="#FFFFFF", outline="#BFC4C9", width=1)
+    txt(draw, (tab_x1 + tab_w / 2, (tab_y1 + tab_y2) / 2), "分位点", f["small"], TEXT, anchor="mm")
+    draw.rectangle((tab_x2, tab_y1, tab_x3, tab_y2), fill="#FFFFFF", outline="#BFC4C9", width=1)
+    txt(draw, (tab_x2 + tab_w / 2, (tab_y1 + tab_y2) / 2), "标准差", f["small"], TEXT, anchor="mm")
 
     left_x = PANEL_X + 20
     value_x = PANEL_X + LEFT_W - 14
