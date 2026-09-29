@@ -1,23 +1,11 @@
 from __future__ import annotations
-import re, requests, urllib.parse
+import re, requests
 
-base="https://baifenwei.com/index/hstech/"
-r=requests.get(base,timeout=30,headers={"User-Agent":"Mozilla/5.0"})
-text=r.text
-print("HTML",r.status_code,len(text))
-srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)["\']',text,re.I)
-print("SCRIPTS",srcs)
-for src in srcs:
-    url=urllib.parse.urljoin(base,src)
-    try:
-        t=requests.get(url,timeout=30,headers={"User-Agent":"Mozilla/5.0"}).text
-    except Exception as exc:
-        print("ERR",url,repr(exc)); continue
-    hits=[]
-    for needle in ["fetch(","/api/","10Y","percentile","chart","series","valuation","history","dataset"]:
-        if needle.lower() in t.lower(): hits.append(needle)
-    print("\nJS",url,"LEN",len(t),"HITS",hits)
-    for needle in ["/api/","fetch(","valuation","history"]:
-        pos=t.lower().find(needle.lower())
-        if pos>=0:
-            print(t[max(0,pos-500):pos+2500].replace("\n"," ")[:3000])
+url="https://baifenwei.com/index/hstech/"
+text=requests.get(url,timeout=30,headers={"User-Agent":"Mozilla/5.0"}).text
+print("LEN",len(text))
+for needle in ["近 10 年百分位","3.1%","1.51","10 年百分位与指数点位走势","PS 百分位","chartData","series","datasets","labels"]:
+    hits=[m.start() for m in re.finditer(re.escape(needle),text,re.I)]
+    print("\nNEEDLE",needle,"COUNT",len(hits),"HITS",hits[:20])
+    for pos in hits[:5]:
+        print(text[max(0,pos-1200):pos+5000].replace("\n"," ")[:6200])
