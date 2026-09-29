@@ -68,6 +68,29 @@ class PublicDataClient:
 
     def fetch_range(self, instrument: Instrument, start: date, end: date) -> list[Observation]:
         source_type = str(instrument.source.get("type", "")).strip()
+
+        if source_type == "chain":
+            errors = []
+            for candidate in instrument.source.get("sources", []):
+                chained = Instrument(
+                    id=instrument.id,
+                    name=instrument.name,
+                    market=instrument.market,
+                    code=instrument.code,
+                    metrics=instrument.metrics,
+                    source=dict(candidate),
+                )
+                try:
+                    rows = self.fetch_range(chained, start, end)
+                    if rows:
+                        return rows
+                except Exception as exc:
+                    errors.append(f"{candidate.get('type')}: {exc}")
+            return []
+
+        if source_type == "danjuan":
+            return self._fetch_danjuan_history(instrument, start, end)
+
         if source_type == "csindex_indicator":
             return [
                 item for item in self._fetch_csindex_indicator(instrument, all_rows=True)
@@ -113,7 +136,19 @@ class PublicDataClient:
         raise PublicSourceError(f"Danjuan index not found or ambiguous: {instrument.name}/{instrument.code}")
 
     def _fetch_danjuan(self, instrument: Instrument) -> list[Observation]:
-        item = self._match_danjuan(instrument)
+        explicit_code = str(instrument.source.get("index_code", "")).strip()
+        if explicit_code:
+            try:
+                item = self._get_json(
+                    f"https://danjuanfunds.com/djapi/index_eva/detail/{explicit_code}",
+                    headers={"Referer": "https://danjuanfunds.com/djmodule/value-center"},
+                ).get("data") or {}
+                if not item:
+                    item = self._match_danjuan(instrument)
+            except Exception:
+                item = self._match_danjuan(instrument)
+        else:
+            item = self._match_danjuan(instrument)
         ts = item.get("ts") or item.get("updated_at") or item.get("created_at")
         day = datetime.fromtimestamp(float(ts) / 1000).date() if ts else date.today()
         point = _as_float(item.get("current"))
@@ -149,6 +184,63 @@ class PublicDataClient:
                 reported_percentile=reported,
             ))
         return result
+
+    def _fetch_danjuan_history(
+        self,
+        instrument: Instrument,
+        start: date,
+        end: date,
+    ) -> list[Observation]:
+        symbol = str(instrument.source.get("index_code", "")).strip()
+        if not symbol:
+            try:
+                item = self._match_danjuan(instrument)
+                symbol = str(item.get("index_code", "")).strip()
+            except Exception:
+                return []
+        if not symbol:
+            return []
+
+        metric_map = {
+            "pe_ttm": ("pe_history", "index_eva_pe_growths", "pe"),
+            "pb": ("pb_history", "index_eva_pb_growths", "pb"),
+        }
+        result: list[Observation] = []
+        headers = {"Referer": "https://danjuanfunds.com/djmodule/value-center"}
+
+        for metric in instrument.metrics:
+            mapping = metric_map.get(metric.key)
+            if mapping is None:
+                continue
+            endpoint, list_key, value_key = mapping
+            payload = self._get_json(
+                f"https://danjuanfunds.com/djapi/index_eva/{endpoint}/{symbol}?day=all",
+                headers=headers,
+            )
+            rows = (payload.get("data") or {}).get(list_key) or []
+            for row in rows:
+                ts = row.get("ts")
+                value = _as_float(row.get(value_key))
+                if ts is None or value is None:
+                    continue
+                day = datetime.fromtimestamp(float(ts) / 1000).date()
+                if not (start <= day <= end):
+                    continue
+                result.append(
+                    Observation(
+                        day=day,
+                        instrument_id=instrument.id,
+                        instrument_name=instrument.name,
+                        market=instrument.market,
+                        code=instrument.code,
+                        metric=metric.key,
+                        weighting=metric.weighting,
+                        value=value,
+                        point=None,
+                        source="danjuan-public-history",
+                    )
+                )
+        return sorted(result, key=lambda x: (x.metric, x.day))
 
     def _cni_rows(self) -> list[dict[str, Any]]:
         if self._cni_cache is not None:
@@ -276,6 +368,13 @@ class PublicDataClient:
             value = _search_number(str(pattern), text)
             if value is None:
                 continue
+            percentile_patterns = instrument.source.get("percentile_patterns") or {}
+            percentile_pattern = percentile_patterns.get(metric.key)
+            reported_percentile = None
+            if percentile_pattern:
+                raw_percentile = _search_number(str(percentile_pattern), text)
+                if raw_percentile is not None:
+                    reported_percentile = raw_percentile / 100.0
             result.append(Observation(
                 day=day,
                 instrument_id=instrument.id,
@@ -287,6 +386,7 @@ class PublicDataClient:
                 value=value,
                 point=point,
                 source=f"public-page:{url}",
+                reported_percentile=reported_percentile,
             ))
         return result
 
