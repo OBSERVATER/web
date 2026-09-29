@@ -295,6 +295,13 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     metric = next(iter((spec.get("metrics") or {}).keys()), item.get("metric") if item else "")
     current = item.get("current") if item else None
     point = item.get("point") if item else None
+    relevant = [
+        r for r in history
+        if r["instrument_id"] == spec["id"] and r["metric"] == metric
+    ]
+    raw_history_count = sum(1 for r in relevant if r.get("value") is not None and float(r.get("value") or 0) > 0)
+    pct_history_count = sum(1 for r in relevant if r.get("reported_percentile") is not None)
+    percentile_mode = raw_history_count < 3 and pct_history_count >= 3
 
     # header bar, mirroring the reference's data header
     draw.rectangle((0, 0, WIDTH, 70), fill="#E9E9E9")
@@ -320,12 +327,16 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     tab_x2 = tab_x3 - tab_w
     tab_x1 = tab_x2 - tab_w
     tab_x0 = tab_x1 - tab_w
-    draw.rounded_rectangle((tab_x0, tab_y1, tab_x1, tab_y2), radius=4, fill="#4EAFC3")
-    txt(draw, ((tab_x0 + tab_x1) / 2, (tab_y1 + tab_y2) / 2), metric_label(metric), f["small"], "#FFFFFF", anchor="mm")
-    draw.rectangle((tab_x1, tab_y1, tab_x2, tab_y2), fill="#FFFFFF", outline="#BFC4C9", width=1)
-    txt(draw, (tab_x1 + tab_w / 2, (tab_y1 + tab_y2) / 2), "分位点", f["small"], TEXT, anchor="mm")
-    draw.rectangle((tab_x2, tab_y1, tab_x3, tab_y2), fill="#FFFFFF", outline="#BFC4C9", width=1)
-    txt(draw, (tab_x2 + tab_w / 2, (tab_y1 + tab_y2) / 2), "标准差", f["small"], TEXT, anchor="mm")
+    tabs = [
+        (tab_x0, tab_x1, metric_label(metric), not percentile_mode),
+        (tab_x1, tab_x2, "分位点", percentile_mode),
+        (tab_x2, tab_x3, "标准差", False),
+    ]
+    for left, right, label, active in tabs:
+        fill = "#4EAFC3" if active else "#FFFFFF"
+        color = "#FFFFFF" if active else TEXT
+        draw.rectangle((left, tab_y1, right, tab_y2), fill=fill, outline="#BFC4C9", width=1)
+        txt(draw, ((left + right) / 2, (tab_y1 + tab_y2) / 2), label, f["small"], color, anchor="mm")
 
     left_x = PANEL_X + 20
     value_x = PANEL_X + LEFT_W - 14
@@ -348,6 +359,11 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     draw_stat(draw, left_x, value_x, y, "指数点位", "—" if point is None else f"{float(point):,.2f}", f)
 
     y += 52
+    draw.rounded_rectangle(
+        (left_x - 8, y - 18, value_x + 8, PANEL_Y + PANEL_H - 40),
+        radius=8,
+        fill="#F7F8FA",
+    )
     draw_stat(draw, left_x, value_x, y, "最大值", fmt(metric, stats.get("maximum") if stats else None), f)
     y += 38
     draw_stat(draw, left_x, value_x, y, "平均值", fmt(metric, stats.get("mean") if stats else None), f)
@@ -368,60 +384,53 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     chart_x1 = PANEL_X + LEFT_W + 28
     chart_y1 = PANEL_Y + 78
     chart_x2 = PANEL_X + PANEL_W - 68
-    chart_y2 = PANEL_Y + PANEL_H - 112
+    chart_y2 = PANEL_Y + PANEL_H - 82
 
-    relevant = [
-        r for r in history
-        if r["instrument_id"] == spec["id"] and r["metric"] == metric
-    ]
     draw_chart(draw, (chart_x1, chart_y1, chart_x2, chart_y2), metric, relevant, stats, f)
 
-    # Two-line legend mirrors Wind's historical valuation data panel.
-    ly1 = PANEL_Y + PANEL_H - 68
-    lx = chart_x1 + 4
-    draw.ellipse((lx, ly1 - 7, lx + 14, ly1 + 7), fill=CYAN)
-    txt(draw, (lx + 22, ly1), metric_label(metric), f["small"], TEXT, anchor="lm")
-    lx += 150
-    draw.line((lx, ly1, lx + 22, ly1), fill=BLUE, width=3)
-    txt(draw, (lx + 30, ly1), "指数点位", f["small"], TEXT, anchor="lm")
-    lx += 128
-    draw.polygon([(lx + 7, ly1 - 7), (lx, ly1 + 6), (lx + 14, ly1 + 6)], fill="#B8BDC2")
-    txt(draw, (lx + 23, ly1), "调仓标志", f["small"], "#A0A5AA", anchor="lm")
-    lx += 126
-    draw.ellipse((lx + 2, ly1 - 5, lx + 12, ly1 + 5), fill="#D0D3D6")
-    txt(draw, (lx + 22, ly1), "分位点", f["small"], "#A0A5AA", anchor="lm")
-    lx += 100
-    dashed_hline(draw, ly1, lx, lx + 22, RED, width=2, dash=6, gap=4)
-    txt(draw, (lx + 30, ly1), "危险值", f["small"], TEXT, anchor="lm")
-    lx += 104
-    dashed_hline(draw, ly1, lx, lx + 22, GRAY_DASH, width=2, dash=6, gap=4)
-    txt(draw, (lx + 30, ly1), "中位数", f["small"], TEXT, anchor="lm")
-
-    ly2 = PANEL_Y + PANEL_H - 34
-    lx = chart_x1 + 4
-    dashed_hline(draw, ly2, lx, lx + 22, GREEN, width=2, dash=6, gap=4)
-    txt(draw, (lx + 30, ly2), "机会值", f["small"], TEXT, anchor="lm")
-    lx += 112
-    dashed_hline(draw, ly2, lx, lx + 22, LIGHT_DASH, width=2, dash=6, gap=4)
-    txt(draw, (lx + 30, ly2), "标准差(+1)", f["small"], MUTED, anchor="lm")
-    lx += 142
-    draw.line((lx, ly2, lx + 22, ly2), fill="#A9AEB3", width=2)
-    txt(draw, (lx + 30, ly2), "平均值", f["small"], MUTED, anchor="lm")
-    lx += 105
-    dashed_hline(draw, ly2, lx, lx + 22, LIGHT_DASH, width=2, dash=6, gap=4)
-    txt(draw, (lx + 30, ly2), "标准差(-1)", f["small"], MUTED, anchor="lm")
+    # Keep only visible chart elements in the legend; the reference screenshot's disabled
+    # legend items made the mobile image unnecessarily dense.
+    ly = PANEL_Y + PANEL_H - 34
+    lx = chart_x1 + 6
+    if percentile_mode:
+        draw.line((lx, ly, lx + 24, ly), fill="#D89A27", width=3)
+        txt(draw, (lx + 32, ly), "历史分位", f["small"], TEXT, anchor="lm")
+        lx += 120
+        draw.line((lx, ly, lx + 24, ly), fill=BLUE, width=3)
+        txt(draw, (lx + 32, ly), "指数点位", f["small"], TEXT, anchor="lm")
+        lx += 122
+        dashed_hline(draw, ly, lx, lx + 24, GREEN, width=2, dash=6, gap=4)
+        txt(draw, (lx + 32, ly), "20%", f["small"], TEXT, anchor="lm")
+        lx += 78
+        dashed_hline(draw, ly, lx, lx + 24, GRAY_DASH, width=2, dash=6, gap=4)
+        txt(draw, (lx + 32, ly), "50%", f["small"], TEXT, anchor="lm")
+        lx += 78
+        dashed_hline(draw, ly, lx, lx + 24, RED, width=2, dash=6, gap=4)
+        txt(draw, (lx + 32, ly), "80%", f["small"], TEXT, anchor="lm")
+    else:
+        draw.ellipse((lx, ly - 7, lx + 14, ly + 7), fill=CYAN)
+        txt(draw, (lx + 22, ly), metric_label(metric), f["small"], TEXT, anchor="lm")
+        lx += 145
+        if any(r.get("point") is not None for r in relevant):
+            draw.line((lx, ly, lx + 24, ly), fill=BLUE, width=3)
+            txt(draw, (lx + 32, ly), "指数点位", f["small"], TEXT, anchor="lm")
+            lx += 122
+        if stats:
+            dashed_hline(draw, ly, lx, lx + 24, RED, width=2, dash=6, gap=4)
+            txt(draw, (lx + 32, ly), "危险值", f["small"], TEXT, anchor="lm")
+            lx += 105
+            dashed_hline(draw, ly, lx, lx + 24, GRAY_DASH, width=2, dash=6, gap=4)
+            txt(draw, (lx + 32, ly), "中位数", f["small"], TEXT, anchor="lm")
+            lx += 105
+            dashed_hline(draw, ly, lx, lx + 24, GREEN, width=2, dash=6, gap=4)
+            txt(draw, (lx + 32, ly), "机会值", f["small"], TEXT, anchor="lm")
 
     if not stats:
         src_pct = ""
         if reported is not None:
-            src_pct = f"；公开源10Y分位 {float(reported)*100:.2f}%"
-        txt(
-            draw,
-            (PANEL_X + 20, PANEL_Y + PANEL_H - 18),
-            f"完整10Y原始序列仍在回填{src_pct}",
-            f["small"],
-            MUTED,
-        )
+            src_pct = f" · 当前公开分位 {float(reported)*100:.2f}%"
+        note = "已取得历史分位序列，原始估值序列仍在回填" if percentile_mode else "完整10Y原始序列仍在回填"
+        txt(draw, (PANEL_X + 20, PANEL_Y + PANEL_H - 18), note + src_pct, f["small"], MUTED)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     image.save(out_path, format="PNG", optimize=True)
