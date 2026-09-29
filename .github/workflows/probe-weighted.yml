@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - ".github/workflows/probe-weighted.yml"
+      - "scripts/probe_weighted_formulas.py"
   workflow_dispatch:
 
 permissions:
