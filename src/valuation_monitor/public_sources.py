@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import pandas as pd
@@ -23,6 +23,12 @@ class PublicDataClient:
         "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/"
         "autofile/indicator/{code}indicator.xls"
     )
+    CSI_WEIGHT = (
+        "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/"
+        "autofile/closeweight/{code}closeweight.xls"
+    )
+    CNI_WEIGHT = "https://www.cnindex.com.cn/sample-detail/download-history"
+    EASTMONEY_DC = "https://datacenter-web.eastmoney.com/api/data/v1/get"
 
     def __init__(self, timeout: float = 30.0) -> None:
         self.timeout = timeout
@@ -56,6 +62,8 @@ class PublicDataClient:
             raise PublicSourceError(
                 f"All public sources failed for {instrument.name}: " + " | ".join(errors)
             )
+        if source_type == "reconstructed":
+            return self._fetch_reconstructed(instrument, end=end)
         if source_type == "danjuan":
             return self._fetch_danjuan(instrument)
         if source_type == "cni":
@@ -102,6 +110,167 @@ class PublicDataClient:
         response = self.session.get(url, timeout=self.timeout, **kwargs)
         response.raise_for_status()
         return response.json()
+
+    def _get_bytes_retry(self, url: str, *, params: dict | None = None, attempts: int = 3) -> bytes:
+        last_exc: Exception | None = None
+        for _ in range(attempts):
+            try:
+                response = self.session.get(url, params=params, timeout=max(self.timeout, 60))
+                response.raise_for_status()
+                return response.content
+            except Exception as exc:
+                last_exc = exc
+        raise PublicSourceError(f"Public file source failed: {url}: {last_exc}")
+
+    def _eastmoney_market_snapshot(self, target: date) -> tuple[date, pd.DataFrame]:
+        for offset in range(0, 8):
+            day = target - timedelta(days=offset)
+            params = {
+                "sortColumns": "SECURITY_CODE",
+                "sortTypes": "1",
+                "pageSize": "6000",
+                "pageNumber": "1",
+                "reportName": "RPT_VALUEANALYSIS_DET",
+                "columns": "ALL",
+                "quoteColumns": "",
+                "source": "WEB",
+                "client": "WEB",
+                "filter": f"(TRADE_DATE='{day.isoformat()}')",
+            }
+            try:
+                payload = self._get_json(
+                    self.EASTMONEY_DC,
+                    params=params,
+                    headers={"Referer": "https://data.eastmoney.com/"},
+                )
+            except Exception:
+                continue
+            rows = (payload.get("result") or {}).get("data") or []
+            if not rows:
+                continue
+            frame = pd.DataFrame(rows)
+            if frame.empty or "SECURITY_CODE" not in frame.columns:
+                continue
+            frame["SECURITY_CODE"] = frame["SECURITY_CODE"].astype(str).str.zfill(6)
+            for column in ("PE_TTM", "PB_MRQ", "PS_TTM", "TOTAL_MARKET_CAP"):
+                if column in frame.columns:
+                    frame[column] = pd.to_numeric(frame[column], errors="coerce")
+            return day, frame
+        raise PublicSourceError(f"No Eastmoney valuation snapshot on or before {target}")
+
+    def _reconstructed_members(self, instrument: Instrument, target: date) -> pd.DataFrame:
+        provider = str(instrument.source.get("index_provider", "")).lower()
+        if provider == "cni":
+            content = self._get_bytes_retry(self.CNI_WEIGHT, params={"indexcode": instrument.code})
+            frame = pd.read_excel(io.BytesIO(content))
+            if len(frame.columns) < 6:
+                raise PublicSourceError("Unexpected CNI weight file")
+            frame = frame.iloc[:, :6].copy()
+            frame.columns = ["day", "code", "name", "industry", "market_cap", "weight"]
+            frame["day"] = pd.to_datetime(frame["day"], errors="coerce")
+            frame["code"] = frame["code"].astype(str).str.replace(".0", "", regex=False).str.zfill(6)
+            frame["weight"] = pd.to_numeric(frame["weight"], errors="coerce")
+            eligible = frame[frame["day"] <= pd.Timestamp(target)]
+            if eligible.empty:
+                eligible = frame
+            latest_day = eligible["day"].max()
+            return eligible[eligible["day"] == latest_day].copy()
+
+        if provider == "csi":
+            content = self._get_bytes_retry(self.CSI_WEIGHT.format(code=instrument.code))
+            frame = pd.read_excel(io.BytesIO(content))
+            if len(frame.columns) < 10:
+                raise PublicSourceError("Unexpected CSI weight file")
+            frame = frame.iloc[:, :10].copy()
+            frame.columns = [
+                "day", "index_code", "index_name", "index_name_en", "code",
+                "name", "name_en", "exchange", "exchange_en", "weight",
+            ]
+            frame["day"] = pd.to_datetime(
+                frame["day"].astype(str).str.replace(r"\.0$", "", regex=True),
+                format="%Y%m%d",
+                errors="coerce",
+            )
+            frame["code"] = frame["code"].astype(str).str.replace(".0", "", regex=False).str.zfill(6)
+            frame["weight"] = pd.to_numeric(frame["weight"], errors="coerce")
+            eligible = frame[frame["day"] <= pd.Timestamp(target)]
+            if eligible.empty:
+                eligible = frame
+            latest_day = eligible["day"].max()
+            return eligible[eligible["day"] == latest_day].copy()
+
+        raise PublicSourceError(f"Unsupported reconstructed index provider: {provider}")
+
+    def _fetch_reconstructed(self, instrument: Instrument, end: date | None = None) -> list[Observation]:
+        target = end or date.today()
+        day, market = self._eastmoney_market_snapshot(target)
+        members = self._reconstructed_members(instrument, day)
+        if members.empty:
+            raise PublicSourceError(f"No constituent weights for {instrument.name}")
+
+        metric_fields = {
+            "pe_ttm": "PE_TTM",
+            "pb": "PB_MRQ",
+            "ps_ttm": "PS_TTM",
+        }
+        aggregation = str(instrument.source.get("aggregation", "index_weight_harmonic"))
+        result: list[Observation] = []
+
+        for metric in instrument.metrics:
+            field = metric_fields.get(metric.key)
+            if field is None or field not in market.columns:
+                continue
+            merged = members[["code", "weight"]].merge(
+                market[["SECURITY_CODE", field, "TOTAL_MARKET_CAP"]],
+                left_on="code",
+                right_on="SECURITY_CODE",
+                how="left",
+            )
+            merged = merged.rename(columns={field: "value"})
+            merged["value"] = pd.to_numeric(merged["value"], errors="coerce")
+            merged["weight"] = pd.to_numeric(merged["weight"], errors="coerce")
+            merged["TOTAL_MARKET_CAP"] = pd.to_numeric(merged["TOTAL_MARKET_CAP"], errors="coerce")
+            valid = merged[
+                merged["value"].notna()
+                & (merged["value"] > 0)
+            ].copy()
+            if valid.empty:
+                continue
+
+            if aggregation == "index_weight_harmonic":
+                valid["w"] = valid["weight"] / 100.0
+                valid = valid[valid["w"].notna() & (valid["w"] > 0)]
+                weight_sum = valid["w"].sum()
+                denominator = (valid["w"] / valid["value"]).sum()
+                value = weight_sum / denominator if denominator else None
+            elif aggregation == "market_cap_harmonic":
+                valid = valid[
+                    valid["TOTAL_MARKET_CAP"].notna()
+                    & (valid["TOTAL_MARKET_CAP"] > 0)
+                ]
+                market_cap_sum = valid["TOTAL_MARKET_CAP"].sum()
+                denominator = (valid["TOTAL_MARKET_CAP"] / valid["value"]).sum()
+                value = market_cap_sum / denominator if denominator else None
+            else:
+                raise PublicSourceError(f"Unsupported aggregation: {aggregation}")
+
+            if value is None:
+                continue
+            result.append(
+                Observation(
+                    day=day,
+                    instrument_id=instrument.id,
+                    instrument_name=instrument.name,
+                    market=instrument.market,
+                    code=instrument.code,
+                    metric=metric.key,
+                    weighting=aggregation,
+                    value=float(value),
+                    point=None,
+                    source=f"reconstructed:{instrument.source.get('index_provider')}+eastmoney:{aggregation}",
+                )
+            )
+        return result
 
     def _danjuan_items(self) -> list[dict[str, Any]]:
         if self._danjuan_cache is not None:
