@@ -68,6 +68,7 @@ instruments:
     source:
       type: public_page
       url: "https://baifenwei.com/index/hstech/"
+      history_type: baifenwei_percentile
       point_secid: "124.HSTECH"
       patterns:
         ps_ttm: "(?:市销率(?:TTM)?|PS(?:-TTM)?)[^0-9]{0,50}([0-9]+(?:\\.[0-9]+)?)"
