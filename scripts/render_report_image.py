@@ -86,6 +86,7 @@ def load_history(path: Path):
                     "metric": row["metric"],
                     "value": float(row["value"]),
                     "point": float(row["point"]) if row.get("point") else None,
+                    "reported_percentile": float(row["reported_percentile"]) if row.get("reported_percentile") else None,
                 })
             except Exception:
                 pass
@@ -147,14 +148,67 @@ def line_points(series, x1, y1, x2, y2, min_day, max_day, lo, hi, key):
     return pts
 
 
+def draw_percentile_chart(draw, box, rows, f):
+    x1, y1, x2, y2 = box
+    draw.rectangle(box, fill="#FBFBFB", outline=GRID, width=1)
+    pct_rows = [r for r in rows if r.get("reported_percentile") is not None]
+    if len(pct_rows) < 3:
+        txt(draw, ((x1 + x2) / 2, (y1 + y2) / 2), "暂无可用历史序列", f["empty"], MUTED, anchor="mm")
+        return
+
+    min_day = min(r["day"] for r in pct_rows)
+    max_day = max(r["day"] for r in pct_rows)
+    total_days = max(1, (max_day - min_day).days)
+
+    for pct in (0, 25, 50, 75, 100):
+        y = y2 - pct / 100 * (y2 - y1)
+        draw.line((x1, y, x2, y), fill=GRID, width=1)
+        txt(draw, (x1 - 12, y), f"{pct}%", f["axis"], MUTED, anchor="rm")
+
+    for pct, color, width in ((20, GREEN, 3), (50, GRAY_DASH, 3), (80, RED, 3)):
+        y = y2 - pct / 100 * (y2 - y1)
+        dashed_hline(draw, y, x1, x2, color, width=width)
+
+    years = list(range(min_day.year, max_day.year + 1))
+    if len(years) > 7:
+        step = max(1, math.ceil(len(years) / 6))
+        years = years[::step]
+        if years[-1] != max_day.year:
+            years.append(max_day.year)
+    for year in years:
+        d = date(year, 1, 1)
+        d = min(max(d, min_day), max_day)
+        x = x1 + ((d - min_day).days / total_days) * (x2 - x1)
+        txt(draw, (x, y2 + 22), str(year)[2:], f["axis"], MUTED, anchor="ma")
+
+    pts = []
+    for row in pct_rows:
+        x = x1 + ((row["day"] - min_day).days / total_days) * (x2 - x1)
+        y = y2 - float(row["reported_percentile"]) * (y2 - y1)
+        pts.append((x, y))
+    if pts:
+        draw.line(pts, fill="#D89A27", width=3)
+
+    point_rows = [r for r in pct_rows if r.get("point") is not None]
+    if len(point_rows) >= 3:
+        p_lo, p_hi = nice_range([r["point"] for r in point_rows], 0.06)
+        p_pts = line_points(point_rows, x1, y1, x2, y2, min_day, max_day, p_lo, p_hi, "point")
+        if p_pts:
+            draw.line(p_pts, fill=BLUE, width=3)
+        for i in range(5):
+            frac = i / 4
+            y = y2 - frac * (y2 - y1)
+            value = p_lo + frac * (p_hi - p_lo)
+            txt(draw, (x2 + 12, y), f"{value:,.0f}", f["axis"], MUTED, anchor="lm")
+
+
 def draw_chart(draw, box, metric, rows, stats, f):
     x1, y1, x2, y2 = box
     draw.rectangle(box, fill="#FBFBFB", outline=GRID, width=1)
 
-    metric_rows = [r for r in rows if r.get("value") is not None]
+    metric_rows = [r for r in rows if r.get("value") is not None and float(r.get("value") or 0) > 0]
     if len(metric_rows) < 3:
-        txt(draw, ((x1 + x2) / 2, (y1 + y2) / 2 - 8), "暂无完整10年原始序列", f["empty"], MUTED, anchor="mm")
-        txt(draw, ((x1 + x2) / 2, (y1 + y2) / 2 + 28), "当前值与可核验分位仍正常显示", f["small"], MUTED, anchor="mm")
+        draw_percentile_chart(draw, box, rows, f)
         return
 
     min_day = min(r["day"] for r in metric_rows)
@@ -169,9 +223,6 @@ def draw_chart(draw, box, metric, rows, stats, f):
             stats.get("opportunity"),
             stats.get("median"),
             stats.get("danger"),
-            stats.get("mean"),
-            (stats.get("mean") or 0) + (stats.get("stddev") or 0),
-            (stats.get("mean") or 0) - (stats.get("stddev") or 0),
         ])
     lo, hi = nice_range(metric_values + overlays, 0.06)
 
@@ -221,17 +272,6 @@ def draw_chart(draw, box, metric, rows, stats, f):
                 continue
             y = y2 - ((val - lo) / (hi - lo)) * (y2 - y1)
             dashed_hline(draw, y, x1, x2, color, width=width)
-
-        mean = stats.get("mean")
-        std = stats.get("stddev")
-        if mean is not None and lo <= mean <= hi:
-            y = y2 - ((mean - lo) / (hi - lo)) * (y2 - y1)
-            draw.line((x1, y, x2, y), fill="#A9AEB3", width=2)
-        if mean is not None and std is not None:
-            for val in (mean + std, mean - std):
-                if lo <= val <= hi:
-                    y = y2 - ((val - lo) / (hi - lo)) * (y2 - y1)
-                    dashed_hline(draw, y, x1, x2, LIGHT_DASH, width=2, dash=8, gap=8)
 
     point_rows = [r for r in rows if r.get("point") is not None]
     if len(point_rows) >= 3:
