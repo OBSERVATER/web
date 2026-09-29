@@ -59,6 +59,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -m "report: add 2026-09-28 valuation images [skip ci]"
+            git pull --rebase origin main
             git push
           fi
 
