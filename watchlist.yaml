@@ -38,6 +38,7 @@ instruments:
     source:
       type: public_page
       url: "https://getstockcheck.com/en/index/HSCGSI.HK/"
+      history_type: stockcheck_embedded
       patterns:
         pb: "(?:P/B|Price.?to.?Book|PB)[^0-9]{0,40}([0-9]+(?:\\.[0-9]+)?)"
       percentile_patterns:
