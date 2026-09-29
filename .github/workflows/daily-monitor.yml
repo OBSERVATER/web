@@ -47,11 +47,11 @@ jobs:
           python -m valuation_monitor.app             --config watchlist.yaml             --history data/history.csv             --latest data/latest.json             --report out/report.html
           python scripts/render_report_image.py
           REPORT_DAY="$(python -c 'import json; print(json.load(open("data/latest.json"))["generated_at"])')"
-          mkdir -p reports
-          cp out/report.png "reports/$REPORT_DAY.png"
+          mkdir -p "reports/$REPORT_DAY"
+          cp out/cards/*.png "reports/$REPORT_DAY/"
           python scripts/build_issue_comment.py
 
-      - name: Persist history and report image
+      - name: Persist history and report images
         shell: bash
         run: |
           set -euo pipefail
@@ -65,7 +65,7 @@ jobs:
             git push
           fi
 
-      - name: Post GitHub Issue report image
+      - name: Post GitHub Issue report images
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh issue comment 1 --repo "${{ github.repository }}" --body-file out/issue-comment.md
@@ -76,6 +76,6 @@ jobs:
           name: valuation-report
           path: |
             out/report.html
-            out/report.png
+            out/cards/
             data/latest.json
           retention-days: 14
