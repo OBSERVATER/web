@@ -30,7 +30,6 @@ instruments:
     source:
       type: csindex_indicator
       dyr_field: dyr2
-      point_secid: "2.000922"
 
   - id: hscgsi
     name: 恒生消费
