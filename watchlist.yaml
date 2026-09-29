@@ -14,8 +14,9 @@ instruments:
     source:
       type: chain
       sources:
-        - type: danjuan
-          name: 价值100
+        - type: reconstructed
+          index_provider: cni
+          aggregation: index_weight_harmonic
         - type: cni
 
   - id: csi_dividend
@@ -49,9 +50,9 @@ instruments:
     metrics:
       pb: {}
     source:
-      type: danjuan
-      name: 医药50
-      index_code: "CSI931140"
+      type: reconstructed
+      index_provider: csi
+      aggregation: market_cap_harmonic
 
   - id: hstech
     name: 恒生科技
