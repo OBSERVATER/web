@@ -92,12 +92,18 @@ def main():
         raise SystemExit("no market valuation rows")
 
     print("\n=== VALUE100 980081 ===")
-    value_w=get_cni_weights("980081")
-    weighted_harmonic(value_w,market,"PE_TTM")
+    try:
+        value_w=get_cni_weights("980081")
+        weighted_harmonic(value_w,market,"PE_TTM")
+    except Exception as exc:
+        print("VALUE100 ERROR",repr(exc))
 
     print("\n=== PHARMA50 931140 ===")
-    pharma_w=get_csi_weights("931140")
-    weighted_harmonic(pharma_w,market,"PB_MRQ")
+    try:
+        pharma_w=get_csi_weights("931140")
+        weighted_harmonic(pharma_w,market,"PB_MRQ")
+    except Exception as exc:
+        print("PHARMA50 ERROR",repr(exc))
 
 if __name__=="__main__":
     main()
