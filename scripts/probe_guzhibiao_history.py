@@ -13,6 +13,9 @@ TARGETS = [
     ("中证红利", "dividend"),
     ("中证红利", "dyr"),
     ("价值100", "pe"),
+    ("国证价值100", "pe"),
+    ("价值100指数", "pe"),
+    ("国证价值100指数", "pe"),
     ("医药50", "pb"),
     ("恒生科技", "ps"),
 ]
@@ -27,7 +30,11 @@ for name, key in TARGETS:
         r.raise_for_status()
         data = r.json()
         print("root keys", list(data) if isinstance(data, dict) else type(data).__name__, flush=True)
-        print("JSON head", json.dumps(data, ensure_ascii=False)[:1100], flush=True)
+        print("JSON head", json.dumps({k:v for k,v in data.items() if k not in ("dates","values","percentiles","close","volatility")} if isinstance(data,dict) else data, ensure_ascii=False)[:550], flush=True)
+        if isinstance(data,dict) and isinstance(data.get("dates"),list) and isinstance(data.get("values"),list):
+            pairs=[(d,v) for d,v in zip(data["dates"],data["values"]) if v is not None]
+            print("DATED_RAW", "count",len(pairs),"first",pairs[:2],"last",pairs[-4:],flush=True)
+            print("SAMPLE_AT_2026_09_28",[(d,v) for d,v in pairs if d in ("2026-09-18","2026-09-24","2026-09-25","2026-09-28","2026-09-29")],flush=True)
         for candidate in ("history", "series", "data", "rows", "values"):
             rows = data.get(candidate) if isinstance(data, dict) else None
             if isinstance(rows, list):
