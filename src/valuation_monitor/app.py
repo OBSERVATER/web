@@ -83,7 +83,7 @@ def run(config_path: str, history_path: str, latest_path: str, report_path: str,
             values = [item.value for item in valid_rows]
             percentile_samples = sum(item.reported_percentile is not None for item in rows)
             snapshot = None
-            history_consistent = len(methods) <= 1
+            history_consistent = not methods or methods == [current_obs.weighting]
             if history_consistent and len(values) >= minimum_history_weeks:
                 snapshot = calculate_snapshot(values, current_obs.value, metric.higher_is_cheaper)
 
