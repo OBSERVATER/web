@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/probe-public-history.yml"
       - "scripts/probe_public_history_candidates.py"
+      - "scripts/probe_public_frontend_routes.py"
   workflow_dispatch:
 
 permissions:
@@ -22,9 +23,13 @@ jobs:
       - name: Install minimum probe dependencies
         run: pip install requests beautifulsoup4 pandas xlrd
       - name: Test candidate sources without mutating production data
-        run: python -u scripts/probe_public_history_candidates.py | tee source-probe.txt
+        run: |
+          python -u scripts/probe_public_history_candidates.py | tee source-probe.txt
+          python -u scripts/probe_public_frontend_routes.py | tee frontend-route-probe.txt
       - uses: actions/upload-artifact@v4
         with:
           name: public-history-source-audit
-          path: source-probe.txt
+          path: |
+            source-probe.txt
+            frontend-route-probe.txt
           retention-days: 14
