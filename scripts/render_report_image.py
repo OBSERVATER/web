@@ -92,6 +92,33 @@ def load_history(path: Path):
     return rows
 
 
+def load_candidate_history(path: Path):
+    """Read provenance-labelled research series without altering primary history."""
+    if not path.exists():
+        return []
+    rows = []
+    with path.open("r", encoding="utf-8", newline="") as fh:
+        for row in csv.DictReader(fh):
+            try:
+                if row.get("source") != "guzhibiao-public-funddb-history":
+                    continue
+                value = float(row["value"])
+                if not math.isfinite(value) or value <= 0:
+                    continue
+                rows.append({
+                    "day": date.fromisoformat(row["day"]),
+                    "instrument_id": row["instrument_id"],
+                    "metric": row["metric"],
+                    "value": value,
+                    "point": None,
+                    "reported_percentile": None,
+                    "source": row["source"],
+                })
+            except (ValueError, KeyError, TypeError):
+                continue
+    return rows
+
+
 def metric_label(metric):
     return {
         "pe_ttm": "市盈率TTM",
@@ -307,7 +334,7 @@ def draw_chart(draw, box, metric, rows, stats, f):
             txt(draw, (x2 + 12, y), f"{value:,.0f}", f["axis"], MUTED, anchor="lm")
 
 
-def render_one(out_path: Path, report_day: str, spec, item, history, f):
+def render_one(out_path: Path, report_day: str, spec, item, history, f, candidate_history=None):
     image = Image.new("RGB", (WIDTH, HEIGHT), BG)
     draw = ImageDraw.Draw(image)
 
@@ -323,6 +350,23 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
         and r["day"] <= as_of
     ]
     relevant.sort(key=lambda r: r["day"])
+    primary_raw_count = sum(
+        1 for r in relevant
+        if r.get("value") is not None and float(r.get("value") or 0) > 0
+    )
+    candidates = sorted(
+        (r for r in (candidate_history or [])
+         if r["instrument_id"] == spec["id"] and r["metric"] == metric and r["day"] <= as_of),
+        key=lambda r: r["day"],
+    )
+    # Use a historical third-party series ONLY as a separately labelled visual
+    # fallback. Current values, primary history, and official stats stay intact.
+    candidate_mode = (
+        primary_raw_count < 12 and len(candidates) >= 12
+        and (as_of - candidates[-1]["day"]).days <= 21
+    )
+    if candidate_mode:
+        relevant = candidates
     raw_history_count = sum(
         1 for r in relevant
         if r.get("value") is not None and float(r.get("value") or 0) > 0
@@ -335,8 +379,10 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     txt(draw, (24, 22), name, f["head"])
     name_width = draw.textbbox((0, 0), name, font=f["head"])[2]
     txt(draw, (36 + name_width, 28), code, f["head_code"], MUTED)
-    chart_caption = "分位历史（非估值原值）" if percentile_mode else (
-        "有效历史不足" if insufficient_mode else "历史估值"
+    chart_caption = "第三方历史估值（独立口径）" if candidate_mode else (
+        "分位历史（非估值原值）" if percentile_mode else (
+            "有效历史不足" if insufficient_mode else "历史估值"
+        )
     )
     txt(draw, (WIDTH - 24, 29), f"{report_day} · {chart_caption}", f["head_code"], MUTED, anchor="ra")
 
@@ -360,7 +406,7 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     inner_w = PANEL_W - 36
     card_w = (inner_w - gap * 4) / 5
     summary = [
-        ("当前值", fmt(metric, current), TEXT),
+        ("当前值·主源" if candidate_mode else "当前值", fmt(metric, current), TEXT),
         (percentile_label, "—" if percentile is None else f"{float(percentile) * 100:.1f}%", TEXT),
         ("机会值", fmt(metric, stats.get("opportunity") if stats else None), GREEN),
         ("中位数", fmt(metric, stats.get("median") if stats else None), TEXT),
@@ -383,7 +429,15 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     footer_y = PANEL_Y + PANEL_H - 88
     draw.line((PANEL_X + 18, footer_y - 14, PANEL_X + PANEL_W - 18, footer_y - 14), fill=GRID, width=1)
 
-    if stats:
+    if candidate_mode:
+        footer = [
+            ("第三方周样本", str(raw_history_count)),
+            ("主源周样本", str(primary_raw_count)),
+            ("历史来源", "FundDB"),
+            ("口径", "独立，不混算"),
+            ("第三方最近值", fmt(metric, relevant[-1]["value"])),
+        ]
+    elif stats:
         footer = [
             ("10Y最低", fmt(metric, stats.get("minimum"))),
             ("10Y平均", fmt(metric, stats.get("mean"))),
@@ -410,6 +464,9 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     lx = PANEL_X + 22
     if insufficient_mode:
         txt(draw, (lx, ly), "仅展示真实已采样值；不足12周不绘制历史曲线", f["small"], MUTED, anchor="lm")
+    elif candidate_mode:
+        draw.ellipse((lx, ly - 6, lx + 12, ly + 6), fill=CYAN)
+        txt(draw, (lx + 20, ly), "第三方 FundDB 历史原值（与主源可能存在口径差异）", f["small"], TEXT, anchor="lm")
     elif percentile_mode:
         draw.ellipse((lx, ly - 6, lx + 12, ly + 6), fill=CYAN)
         txt(draw, (lx + 20, ly), "历史分位（非PS原值）", f["small"], TEXT, anchor="lm")
@@ -434,6 +491,7 @@ def main():
     data = json.loads(latest_path.read_text(encoding="utf-8"))
     specs = load_watchlist(watchlist_path)
     history = load_history(history_path)
+    candidates = load_candidate_history(Path("data/candidates/guzhibiao_funddb_history.csv"))
     items = {(x["instrument_id"], x["metric"]): x for x in data.get("items", [])}
     f = fonts()
     report_day = data["generated_at"]
@@ -443,7 +501,7 @@ def main():
         metric = next(iter((spec.get("metrics") or {}).keys()), "")
         item = items.get((spec["id"], metric))
         out = Path("out/cards") / f"{spec['id']}.png"
-        render_one(out, report_day, spec, item, history, f)
+        render_one(out, report_day, spec, item, history, f, candidates)
         manifest.append({
             "id": spec["id"],
             "name": spec["name"],
