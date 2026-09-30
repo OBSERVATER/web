@@ -44,6 +44,10 @@ def run(config_path: str, history_path: str, latest_path: str, report_path: str,
 
         try:
             latest = client.fetch_latest(instrument, end=today)
+            # Public HTML snapshots are often generated on the current wall
+            # clock date even when this is a historical report. Never leak a
+            # future observation into an older as-of-date report.
+            latest = [item for item in latest if item.day <= today]
             incoming.extend(latest)
             for item in latest:
                 latest_by_key[(item.instrument_id, item.metric)] = item
