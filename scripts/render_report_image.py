@@ -419,7 +419,7 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
     chart_x1 = PANEL_X + 72
     chart_y1 = PANEL_Y + 112
     chart_x2 = PANEL_X + PANEL_W - 70
-    chart_y2 = PANEL_Y + PANEL_H - 116
+    chart_y2 = PANEL_Y + PANEL_H - 151  # Leave dedicated space for year ticks and footer
 
     # Keep the visual focus on valuation history. Index point remains in the footer
     # instead of sharing a second y-axis with the valuation line.
