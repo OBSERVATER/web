@@ -1,0 +1,66 @@
+[
+  {
+    "instrument_id": "csi_dividend",
+    "code": "000922",
+    "metric": "dyr",
+    "source_url": "https://guzhibiao.com/api/index/%E4%B8%AD%E8%AF%81%E7%BA%A2%E5%88%A9/history?indicator=dividend",
+    "raw_daily": 2438,
+    "weekly_samples": 514,
+    "first": {
+      "day": "2016-09-14",
+      "instrument_id": "csi_dividend",
+      "instrument_name": "中证红利",
+      "code": "000922",
+      "metric": "dyr",
+      "value": "3.72",
+      "source": "guzhibiao-public-funddb-history",
+      "weighting": "funddb-native-unverified",
+      "coverage_note": "separate-candidate-do-not-merge-with-official-weighted-history"
+    },
+    "last": {
+      "day": "2026-09-29",
+      "instrument_id": "csi_dividend",
+      "instrument_name": "中证红利",
+      "code": "000922",
+      "metric": "dyr",
+      "value": "4.14",
+      "source": "guzhibiao-public-funddb-history",
+      "weighting": "funddb-native-unverified",
+      "coverage_note": "separate-candidate-do-not-merge-with-official-weighted-history"
+    },
+    "sampling": "ISO-week last published trading day",
+    "production_merge_allowed": false
+  },
+  {
+    "instrument_id": "pharma50",
+    "code": "931140",
+    "metric": "pb",
+    "source_url": "https://guzhibiao.com/api/index/%E5%8C%BB%E8%8D%AF50/history?indicator=pb",
+    "raw_daily": 1829,
+    "weekly_samples": 387,
+    "first": {
+      "day": "2019-03-22",
+      "instrument_id": "pharma50",
+      "instrument_name": "医药50",
+      "code": "931140",
+      "metric": "pb",
+      "value": "4.87",
+      "source": "guzhibiao-public-funddb-history",
+      "weighting": "funddb-native-unverified",
+      "coverage_note": "separate-candidate-do-not-merge-with-official-weighted-history"
+    },
+    "last": {
+      "day": "2026-09-29",
+      "instrument_id": "pharma50",
+      "instrument_name": "医药50",
+      "code": "931140",
+      "metric": "pb",
+      "value": "3.94",
+      "source": "guzhibiao-public-funddb-history",
+      "weighting": "funddb-native-unverified",
+      "coverage_note": "separate-candidate-do-not-merge-with-official-weighted-history"
+    },
+    "sampling": "ISO-week last published trading day",
+    "production_merge_allowed": false
+  }
+]
