@@ -39,6 +39,7 @@ class PublicDataClient:
         })
         self._danjuan_cache: list[dict[str, Any]] | None = None
         self._cni_cache: list[dict[str, Any]] | None = None
+        self.history_source_warnings: list[str] = []
 
     def fetch_latest(self, instrument: Instrument, end: date | None = None) -> list[Observation]:
         source_type = str(instrument.source.get("type", "")).strip()
@@ -100,7 +101,8 @@ class PublicDataClient:
                 )
                 try:
                     candidate_rows = self.fetch_range(chained, start, end)
-                except Exception:
+                except Exception as exc:
+                    self.history_source_warnings.append(f"{instrument.name}: {candidate.get('type')}: {exc}")
                     continue
 
                 # Keep the last trading observation from this candidate for each
