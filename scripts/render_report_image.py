@@ -157,7 +157,7 @@ def line_points(series, x1, y1, x2, y2, min_day, max_day, lo, hi, key):
 def draw_percentile_chart(draw, box, rows, f):
     x1, y1, x2, y2 = box
     draw.rectangle(box, fill="#FBFBFB", outline=GRID, width=1)
-    pct_rows = [r for r in rows if r.get("reported_percentile") is not None]
+    pct_rows = sorted([r for r in rows if r.get("reported_percentile") is not None], key=lambda r: r["day"])
     if len(pct_rows) < 3:
         txt(draw, ((x1 + x2) / 2, (y1 + y2) / 2), "暂无可用历史序列", f["empty"], MUTED, anchor="mm")
         return
@@ -216,9 +216,20 @@ def draw_chart(draw, box, metric, rows, stats, f):
     x1, y1, x2, y2 = box
     draw.rectangle(box, fill="#FBFBFB", outline=GRID, width=1)
 
-    metric_rows = [r for r in rows if r.get("value") is not None and float(r.get("value") or 0) > 0]
-    if len(metric_rows) < 3:
-        draw_percentile_chart(draw, box, rows, f)
+    metric_rows = sorted(
+        [r for r in rows if r.get("value") is not None and float(r.get("value") or 0) > 0],
+        key=lambda r: r["day"],
+    )
+    pct_rows = [r for r in rows if r.get("reported_percentile") is not None]
+    if len(metric_rows) < 12:
+        if len(pct_rows) >= 12:
+            draw_percentile_chart(draw, box, rows, f)
+        else:
+            txt(draw, ((x1 + x2) / 2, (y1 + y2) / 2 - 22),
+                "历史原始估值不足，暂不绘制曲线", f["empty"], MUTED, anchor="mm")
+            txt(draw, ((x1 + x2) / 2, (y1 + y2) / 2 + 18),
+                f"当前已收集 {len(metric_rows)} 个有效周样本 / 目标 450 周",
+                f["label"], MUTED, anchor="mm")
         return
 
     min_day = min(r["day"] for r in metric_rows)
@@ -305,22 +316,29 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     metric = next(iter((spec.get("metrics") or {}).keys()), item.get("metric") if item else "")
     current = item.get("current") if item else None
     point = item.get("point") if item else None
+    as_of = date.fromisoformat(report_day)
     relevant = [
         r for r in history
         if r["instrument_id"] == spec["id"] and r["metric"] == metric
+        and r["day"] <= as_of
     ]
+    relevant.sort(key=lambda r: r["day"])
     raw_history_count = sum(
         1 for r in relevant
         if r.get("value") is not None and float(r.get("value") or 0) > 0
     )
     pct_history_count = sum(1 for r in relevant if r.get("reported_percentile") is not None)
-    percentile_mode = raw_history_count < 3 and pct_history_count >= 3
+    percentile_mode = raw_history_count < 12 and pct_history_count >= 12
+    insufficient_mode = raw_history_count < 12 and not percentile_mode
 
     draw.rectangle((0, 0, WIDTH, 70), fill="#E9E9E9")
     txt(draw, (24, 22), name, f["head"])
     name_width = draw.textbbox((0, 0), name, font=f["head"])[2]
     txt(draw, (36 + name_width, 28), code, f["head_code"], MUTED)
-    txt(draw, (WIDTH - 24, 29), f"{report_day} · 近10年估值", f["head_code"], MUTED, anchor="ra")
+    chart_caption = "分位历史（非估值原值）" if percentile_mode else (
+        "有效历史不足" if insufficient_mode else "历史估值"
+    )
+    txt(draw, (WIDTH - 24, 29), f"{report_day} · {chart_caption}", f["head_code"], MUTED, anchor="ra")
 
     draw.rounded_rectangle(
         (PANEL_X, PANEL_Y, PANEL_X + PANEL_W, PANEL_Y + PANEL_H),
@@ -331,6 +349,10 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     stats = item.get("stats") if item else None
     reported = item.get("reported_percentile") if item else None
     percentile = stats.get("percentile") if stats else reported
+    percentile_label = "10Y分位" if stats else "源站分位"
+    if current is not None and item and item.get("source_date"):
+        txt(draw, (PANEL_X + PANEL_W - 20, PANEL_Y + PANEL_H - 18),
+            f"当前值交易日 {item['source_date']}", f["small"], MUTED, anchor="ra")
 
     top = PANEL_Y + 18
     gap = 10
@@ -339,7 +361,7 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     card_w = (inner_w - gap * 4) / 5
     summary = [
         ("当前值", fmt(metric, current), TEXT),
-        ("10Y分位", "—" if percentile is None else f"{float(percentile) * 100:.1f}%", TEXT),
+        (percentile_label, "—" if percentile is None else f"{float(percentile) * 100:.1f}%", TEXT),
         ("机会值", fmt(metric, stats.get("opportunity") if stats else None), GREEN),
         ("中位数", fmt(metric, stats.get("median") if stats else None), TEXT),
         ("危险值", fmt(metric, stats.get("danger") if stats else None), RED),
@@ -374,7 +396,7 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
             ("历史样本", str(raw_history_count)),
             ("分位样本", str(pct_history_count)),
             ("指数点位", "—" if point is None else f"{float(point):,.2f}"),
-            ("数据状态", "分位历史" if percentile_mode else "回填中"),
+            ("数据状态", "仅分位历史" if percentile_mode else "原值不足"),
             ("目标", "10Y / 450周"),
         ]
 
@@ -386,7 +408,9 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
 
     ly = PANEL_Y + PANEL_H - 18
     lx = PANEL_X + 22
-    if percentile_mode:
+    if insufficient_mode:
+        txt(draw, (lx, ly), "仅展示真实已采样值；不足12周不绘制历史曲线", f["small"], MUTED, anchor="lm")
+    elif percentile_mode:
         draw.ellipse((lx, ly - 6, lx + 12, ly + 6), fill=CYAN)
         txt(draw, (lx + 20, ly), "历史分位（非PS原值）", f["small"], TEXT, anchor="lm")
     else:
