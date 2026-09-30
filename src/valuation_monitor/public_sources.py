@@ -130,6 +130,8 @@ class PublicDataClient:
             rows = self._fetch_stockcheck_embedded_history(instrument, start, end)
         elif source_type == "public_page" and instrument.source.get("history_type") == "baifenwei_percentile":
             rows = self._fetch_baifenwei_percentile_history(instrument, start, end)
+        elif source_type == "public_html_table":
+            rows = self._fetch_public_html_table_history(instrument, start, end)
 
         return self._attach_index_points(instrument, rows)
 
@@ -616,6 +618,54 @@ class PublicDataClient:
                     source="csindex-official-public",
                 ))
         return result
+
+    def _fetch_public_html_table_history(
+        self, instrument: Instrument, start: date, end: date,
+    ) -> list[Observation]:
+        """Optional token-free public HTML dated table; never interpolate."""
+        url = str(instrument.source.get("url", "")).strip()
+        metric_key = instrument.metrics[0].key if len(instrument.metrics) == 1 else ""
+        label = {
+            "dyr": ("股息率", "Dividend Yield"),
+            "pb": ("市净率", "Price to Book"),
+            "pe_ttm": ("市盈率", "P/E"),
+            "ps_ttm": ("市销率", "P/S"),
+        }.get(metric_key)
+        if not url or label is None:
+            return []
+        response = self.session.get(url, timeout=self.timeout)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        result: list[Observation] = []
+        for table in soup.select("table"):
+            heads = [cell.get_text(" ", strip=True) for cell in table.select("thead th")]
+            if not heads:
+                head_row = table.find("tr")
+                heads = [x.get_text(" ", strip=True) for x in head_row.find_all(["td", "th"])] if head_row else []
+            date_col = next((i for i, h in enumerate(heads) if h in ("日期", "Date")), None)
+            value_col = next((i for i, h in enumerate(heads) if any(h.startswith(s) for s in label)), None)
+            if date_col is None or value_col is None or date_col == value_col:
+                continue
+            for tr in table.find_all("tr"):
+                cells = [x.get_text(" ", strip=True) for x in tr.find_all(["td", "th"])]
+                if max(date_col, value_col) >= len(cells):
+                    continue
+                try:
+                    day = date.fromisoformat(cells[date_col][:10])
+                except ValueError:
+                    continue
+                if not (start <= day <= end):
+                    continue
+                val = _as_float(cells[value_col])
+                if val is None or val <= 0:
+                    continue
+                result.append(Observation(
+                    day=day, instrument_id=instrument.id, instrument_name=instrument.name,
+                    market=instrument.market, code=instrument.code, metric=metric_key,
+                    weighting=str(instrument.source.get("weighting", "unverified")),
+                    value=val, point=None, source=f"public-html-table:{url}",
+                ))
+        return sorted(result, key=lambda x: x.day)
 
     def _fetch_baifenwei_percentile_history(
         self,
