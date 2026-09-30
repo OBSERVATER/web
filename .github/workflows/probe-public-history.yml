@@ -6,6 +6,7 @@ on:
       - ".github/workflows/probe-public-history.yml"
       - "scripts/probe_public_history_candidates.py"
       - "scripts/probe_public_frontend_routes.py"
+      - "scripts/probe_guzhibiao_history.py"
   workflow_dispatch:
 
 permissions:
@@ -26,10 +27,12 @@ jobs:
         run: |
           python -u scripts/probe_public_history_candidates.py | tee source-probe.txt
           python -u scripts/probe_public_frontend_routes.py | tee frontend-route-probe.txt
+          python -u scripts/probe_guzhibiao_history.py | tee guzhibiao-history-probe.txt
       - uses: actions/upload-artifact@v4
         with:
           name: public-history-source-audit
           path: |
             source-probe.txt
             frontend-route-probe.txt
+            guzhibiao-history-probe.txt
           retention-days: 14
