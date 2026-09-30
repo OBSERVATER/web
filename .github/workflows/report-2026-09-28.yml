@@ -6,6 +6,8 @@ on:
       - ".github/workflows/report-2026-09-28.yml"
       - "src/valuation_monitor/public_sources.py"
       - "scripts/render_report_image.py"
+      - "src/valuation_monitor/app.py"
+      - "tests/**"
       - "scripts/build_issue_comment.py"
       - "watchlist.yaml"
   workflow_dispatch:
@@ -58,7 +60,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git add reports/2026-09-28/ data/history.csv data/latest.json
+          # Historical backfill is persistent, but this fixed-date report must not
+          # overwrite the current daily snapshot with an older as-of date.
+          git add reports/2026-09-28/ data/history.csv
+          git restore --worktree data/latest.json
           if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
