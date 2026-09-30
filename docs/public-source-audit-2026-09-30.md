@@ -30,3 +30,18 @@ ETF.run summaries are for independent spot checks, not automatically treated as
 Next source-search priorities: authoritative older CSI dividend indicator archive,
 weighted historical PE/PB for CNI 980081 and CSI 931140, and **raw** HSTECH PS
 history (separate from percentile charts).
+
+## GitHub Actions verification (2026-09-30)
+
+Run 36678317190 completed successfully. Unit tests, image rendering, and artifact
+publication passed. However, all three optional Lixinger public-HTML history GETs
+returned HTTP 403 Forbidden from GitHub-hosted runners:
+
+- 价值100 / PE: 403
+- 中证红利 / DY: 403
+- 医药50 / PB: 403
+
+Therefore **zero verified historical raw-valuation weeks were added by these three
+adapters** in this run. Do not treat successful workflow execution as successful
+backfill. The existing canonical source was left intact. No token-backed private
+API was attempted, and no weighting-incompatible ETF.run series was substituted.
