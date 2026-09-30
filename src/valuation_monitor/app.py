@@ -61,6 +61,7 @@ def run(config_path: str, history_path: str, latest_path: str, report_path: str,
         "frequency": "weekly-last-trading-day",
         "minimum_history_weeks": minimum_history_weeks,
         "errors": errors,
+        "source_warnings": list(client.history_source_warnings),
         "items": [],
     }
 
