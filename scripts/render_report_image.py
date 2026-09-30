@@ -192,8 +192,12 @@ def draw_percentile_chart(draw, box, rows, f):
         x = x1 + ((row["day"] - min_day).days / total_days) * (x2 - x1)
         y = y2 - float(row["reported_percentile"]) * (y2 - y1)
         pts.append((x, y))
-    if pts:
-        draw.line(pts, fill="#D89A27", width=3)
+    if len(pts) >= 2:
+        # Percentile history is also rendered as an area chart. This is a
+        # 0-100% percentile series, NOT a fabricated raw PS/PE/PB series.
+        polygon = [(pts[0][0], y2), *pts, (pts[-1][0], y2)]
+        draw.polygon(polygon, fill=CYAN)
+        draw.line(pts, fill="#58B5C2", width=3)
 
     point_rows = [r for r in pct_rows if r.get("point") is not None]
     if len(point_rows) >= 3:
@@ -383,8 +387,8 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f):
     ly = PANEL_Y + PANEL_H - 18
     lx = PANEL_X + 22
     if percentile_mode:
-        draw.line((lx, ly, lx + 24, ly), fill="#D89A27", width=3)
-        txt(draw, (lx + 32, ly), "历史分位", f["small"], TEXT, anchor="lm")
+        draw.ellipse((lx, ly - 6, lx + 12, ly + 6), fill=CYAN)
+        txt(draw, (lx + 20, ly), "历史分位（非PS原值）", f["small"], TEXT, anchor="lm")
     else:
         draw.ellipse((lx, ly - 6, lx + 12, ly + 6), fill=CYAN)
         txt(draw, (lx + 20, ly), metric_label(metric), f["small"], TEXT, anchor="lm")
