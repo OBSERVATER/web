@@ -35,5 +35,8 @@ for url in scripts[:16]:
         routes = sorted(s for s in routes if any(k in s.lower() for k in
                         ("index", "histor", "valuation", "ratio", "fund", "sync")))
         print("relevant route strings:", routes[:70], flush=True)
+        for key in ("/api/index/", "/api/sync/health"):
+            for m in list(re.finditer(re.escape(key), r.text))[:3]:
+                print("route context:", r.text[max(0, m.start()-210):m.start()+310], flush=True)
     except requests.RequestException as exc:
         print("bundle unavailable:", str(exc)[:130], flush=True)
