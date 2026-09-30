@@ -51,6 +51,9 @@ jobs:
           PYTHONPATH: src
         run: |
           python -m valuation_monitor.app             --config watchlist.yaml             --history data/history.csv             --latest data/latest.json             --report out/report.html             --as-of-date 2026-09-28
+          mkdir -p out
+          cp data/latest.json out/run-latest.json
+          python -c 'import json; p=json.load(open("out/run-latest.json")); print("Optional history sources:", *p.get("source_warnings", []), sep="\\n- ")'
           python scripts/render_report_image.py
           mkdir -p reports/2026-09-28
           cp out/cards/*.png reports/2026-09-28/
@@ -84,5 +87,5 @@ jobs:
           path: |
             out/report.html
             out/cards/
-            data/latest.json
+            out/run-latest.json
           retention-days: 14
