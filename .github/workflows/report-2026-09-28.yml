@@ -1,15 +1,7 @@
 name: Generate 2026-09-28 valuation report
 
+# Historical report: manually rerun only. Never publish stale cards on routine commits.
 on:
-  push:
-    paths:
-      - ".github/workflows/report-2026-09-28.yml"
-      - "src/valuation_monitor/public_sources.py"
-      - "scripts/render_report_image.py"
-      - "src/valuation_monitor/app.py"
-      - "tests/**"
-      - "scripts/build_issue_comment.py"
-      - "watchlist.yaml"
   workflow_dispatch:
 
 permissions:
