@@ -45,3 +45,38 @@ Therefore **zero verified historical raw-valuation weeks were added by these thr
 adapters** in this run. Do not treat successful workflow execution as successful
 backfill. The existing canonical source was left intact. No token-backed private
 API was attempted, and no weighting-incompatible ETF.run series was substituted.
+
+## 2026-09-30: verified first-party guzhibiao historical API
+
+The publicly served frontend JS at `https://guzhibiao.com/static/app.js`
+requests `GET /api/index/{name}/history?indicator={indicator}`, and the
+public data-transparency page identifies FundDB as its native valuation
+provider. The endpoint was tested **inside GitHub Actions**, not only in a
+browser.
+
+| Target | API identity | Daily raw values | Weekly last-trading-day values | First week | Latest source value (2026-09-29) | Result |
+|---|---|---:|---:|---|---:|---|
+| 中证红利股息率 | 000922 / dividend | 2,438 | 514 | 2016-09-14 | 4.14% | Candidate history exported |
+| 医药50 PB | 931140 / pb | 1,829 | 387 | 2019-03-22 | 3.94 | Candidate history exported |
+| 价值100 PE | 980081 / pe | — | — | — | — | 404 on tested original name and three name variants |
+| 恒生科技 PS | HSTECH / ps | — | — | — | — | 404, no raw PS available on this route |
+
+The two successful series are persisted under
+`data/candidates/guzhibiao_funddb_history.csv`, with source provenance,
+index-code checks, date validation, and the explicit
+`funddb-native-unverified` weighting marker. The primary
+`data/history.csv` and `data/latest.json` remain unchanged.
+
+**Same-date cross-check:** official CSI D/P2 for 中证红利 was 4.28% on
+2026-09-29 while the third-party FundDB native DY was 4.14%; do not pool
+them or use the FundDB historical percentiles for the official value.
+Medical-50 primary reconstructed PB was ~3.885 on the same date versus
+FundDB 3.94. The secondary chart is independently labelled and does not
+compute or display a mixed-source 10-year percentile. Medical-50 also
+started in 2019, so 387 weekly observations are not a full ten-year series.
+
+Reproducible workflow: `Backfill public valuation candidates`.
+The production image renderer can use those validated candidate rows as
+a clearly labelled **historical visualization only** when the primary raw
+history has fewer than 12 weekly points. Current large headline values
+remain from the primary daily snapshot.
