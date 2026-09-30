@@ -20,6 +20,9 @@ instruments:
           point_secid: "0.980081"
         - type: cni
           point_secid: "0.980081"
+        - type: public_html_table
+          url: "https://www.lixinger.com/equity/index/detail/sz/980081/980081/fundamental/valuation/pe-ttm?metrics-type=mcw"
+          weighting: "mcw-external"
 
   - id: csi_dividend
     name: 中证红利
@@ -28,8 +31,13 @@ instruments:
     metrics:
       dyr: {}
     source:
-      type: csindex_indicator
-      dyr_field: dyr2
+      type: chain
+      sources:
+        - type: csindex_indicator
+          dyr_field: dyr2
+        - type: public_html_table
+          url: "https://www.lixinger.com/equity/index/detail/sh/000922/922/fundamental/valuation/dyr?metrics-type=mcw"
+          weighting: "mcw-external"
 
   - id: hscgsi
     name: 恒生消费
@@ -54,10 +62,15 @@ instruments:
     metrics:
       pb: {}
     source:
-      type: reconstructed
-      index_provider: csi
-      aggregation: market_cap_harmonic
-      point_secid: "2.931140"
+      type: chain
+      sources:
+        - type: reconstructed
+          index_provider: csi
+          aggregation: market_cap_harmonic
+          point_secid: "2.931140"
+        - type: public_html_table
+          url: "https://www.lixinger.com/equity/index/detail/csi/931140/931140/fundamental/valuation/pb?metrics-type=mcw"
+          weighting: "mcw-external"
 
   - id: hstech
     name: 恒生科技
