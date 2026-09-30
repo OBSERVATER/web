@@ -1,0 +1,76 @@
+name: Render current valuation cards
+
+on:
+  push:
+    paths:
+      - ".github/workflows/render-current-cards.yml"
+      - "scripts/render_report_image.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: valuation-current-card-render
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install fonts and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+          pip install -r requirements.txt
+      - name: Unit tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -v
+      - name: Render from the saved CURRENT daily snapshot
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
+          values = {x["instrument_id"]: x.get("current") for x in data["items"]}
+          for key in ("hscgsi", "hstech"):
+              assert values.get(key) is not None, f"Current HK valuation missing: {key}"
+          print("Snapshot:", data["generated_at"], "HSCGSI PB:", values["hscgsi"], "HSTECH PS:", values["hstech"])
+          PY
+          python scripts/render_report_image.py
+          REPORT_DAY="$(python -c 'import json;print(json.load(open("data/latest.json"))["generated_at"])')"
+          mkdir -p "reports/$REPORT_DAY"
+          cp out/cards/*.png "reports/$REPORT_DAY/"
+          python scripts/build_issue_comment.py
+      - name: Publish current cards only
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT_DAY="$(python -c 'import json;print(json.load(open("data/latest.json"))["generated_at"])')"
+          git add "reports/$REPORT_DAY/"
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "report: correct current valuation cards [skip ci]"
+            git pull --rebase origin main
+            git push
+          fi
+      - name: Post corrected current report images
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 1 --repo "${{ github.repository }}" --body-file out/issue-comment.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: corrected-current-valuation-cards
+          path: |
+            out/cards/
+            out/issue-comment.md
+          retention-days: 14
