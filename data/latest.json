@@ -1,9 +1,10 @@
 {
-  "generated_at": "2026-09-30",
+  "generated_at": "2026-10-01",
   "history_years": 10,
   "frequency": "weekly-last-trading-day",
   "minimum_history_weeks": 450,
   "errors": [],
+  "source_warnings": [],
   "items": [
     {
       "instrument_id": "value100",
@@ -13,13 +14,17 @@
       "metric": "pe_ttm",
       "weighting": "aggregate",
       "source": "reconstructed:cni+eastmoney:index_weight_harmonic",
-      "source_date": "2026-09-29",
+      "source_date": "2026-09-30",
       "point": null,
-      "current": 9.038074760324164,
+      "current": 8.832004408389434,
       "reported_percentile": null,
       "history_samples": 1,
       "percentile_history_samples": 0,
-      "history_complete": false
+      "history_complete": false,
+      "history_methods": [
+        "index_weight_harmonic"
+      ],
+      "history_method_consistent": true
     },
     {
       "instrument_id": "csi_dividend",
@@ -29,13 +34,17 @@
       "metric": "dyr",
       "weighting": "aggregate",
       "source": "csindex-official-public",
-      "source_date": "2026-09-29",
+      "source_date": "2026-09-30",
       "point": null,
-      "current": 4.28,
+      "current": 4.23,
       "reported_percentile": null,
       "history_samples": 5,
       "percentile_history_samples": 0,
-      "history_complete": false
+      "history_complete": false,
+      "history_methods": [
+        "aggregate"
+      ],
+      "history_method_consistent": true
     },
     {
       "instrument_id": "hscgsi",
@@ -45,27 +54,31 @@
       "metric": "pb",
       "weighting": "aggregate",
       "source": "public-page:https://getstockcheck.com/en/index/HSCGSI.HK/",
-      "source_date": "2026-09-30",
+      "source_date": "2026-10-01",
       "point": null,
       "current": 2.27,
       "reported_percentile": 0.2767,
-      "history_samples": 523,
+      "history_samples": 522,
       "percentile_history_samples": 1,
       "history_complete": true,
+      "history_methods": [
+        "aggregate"
+      ],
+      "history_method_consistent": true,
       "stats": {
         "current": 2.27,
-        "percentile": 0.27011494252873564,
+        "percentile": 0.2687140115163148,
         "q20": 2.2,
         "median": 2.56,
-        "q80": 3.0460000000000003,
-        "mean": 2.630076481835564,
+        "q80": 3.048,
+        "mean": 2.6311877394636016,
         "minimum": 1.76,
         "maximum": 3.95,
-        "stddev": 0.45846989042034086,
-        "zscore": -0.7853874144394385,
+        "stddev": 0.4582046080499246,
+        "zscore": -0.7882673659716833,
         "opportunity": 2.2,
-        "danger": 3.0460000000000003,
-        "sample_count": 523,
+        "danger": 3.048,
+        "sample_count": 522,
         "higher_is_cheaper": false
       },
       "zone": "中性"
@@ -78,13 +91,17 @@
       "metric": "pb",
       "weighting": "aggregate",
       "source": "reconstructed:csi+eastmoney:market_cap_harmonic",
-      "source_date": "2026-09-29",
-      "point": 9988.33,
-      "current": 3.8852304771677835,
+      "source_date": "2026-09-30",
+      "point": null,
+      "current": 3.9938636718980196,
       "reported_percentile": null,
       "history_samples": 1,
       "percentile_history_samples": 0,
-      "history_complete": false
+      "history_complete": false,
+      "history_methods": [
+        "market_cap_harmonic"
+      ],
+      "history_method_consistent": true
     },
     {
       "instrument_id": "hstech",
@@ -94,13 +111,17 @@
       "metric": "ps_ttm",
       "weighting": "aggregate",
       "source": "public-page:https://baifenwei.com/index/hstech/",
-      "source_date": "2026-09-30",
-      "point": 4233.63,
+      "source_date": "2026-10-01",
+      "point": null,
       "current": 1.49,
       "reported_percentile": 0.02,
       "history_samples": 1,
       "percentile_history_samples": 317,
-      "history_complete": false
+      "history_complete": false,
+      "history_methods": [
+        "aggregate"
+      ],
+      "history_method_consistent": true
     },
     {
       "instrument_id": "sp500",
@@ -110,24 +131,28 @@
       "metric": "pe_ttm",
       "weighting": "aggregate",
       "source": "danjuan-public",
-      "source_date": "2026-09-28",
-      "point": 7683.69,
-      "current": 25.1952,
-      "reported_percentile": 0.5712,
+      "source_date": "2026-09-29",
+      "point": null,
+      "current": 25.1429,
+      "reported_percentile": 0.568,
       "history_samples": 477,
       "percentile_history_samples": 1,
       "history_complete": true,
+      "history_methods": [
+        "aggregate"
+      ],
+      "history_method_consistent": true,
       "stats": {
-        "current": 25.1952,
-        "percentile": 0.5525210084033614,
+        "current": 25.1429,
+        "percentile": 0.5504201680672269,
         "q20": 21.944580000000002,
         "median": 24.3853,
         "q80": 28.51972,
-        "mean": 25.416620545073375,
+        "mean": 25.416510901467504,
         "minimum": 16.1785,
         "maximum": 42.0468,
-        "stddev": 4.353997664865883,
-        "zscore": -0.050854539234162756,
+        "stddev": 4.354003897872667,
+        "zscore": -0.0628412164723112,
         "opportunity": 21.944580000000002,
         "danger": 28.51972,
         "sample_count": 477,
