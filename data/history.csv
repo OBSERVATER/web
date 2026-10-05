@@ -527,6 +527,7 @@ day,instrument_id,instrument_name,market,code,metric,weighting,value,point,sourc
 2026-09-18,hscgsi,恒生消费,hk,HSCGSI,pb,aggregate,2.32,2213.26,stockcheck-public-history,
 2026-09-25,hscgsi,恒生消费,hk,HSCGSI,pb,aggregate,2.27,2168.02,stockcheck-public-history,
 2026-10-02,hscgsi,恒生消费,hk,HSCGSI,pb,aggregate,2.27,2165.98,public-page:https://getstockcheck.com/en/index/HSCGSI.HK/,0.2767
+2026-10-05,hscgsi,恒生消费,hk,HSCGSI,pb,aggregate,2.27,2166.02,public-page:https://getstockcheck.com/en/index/HSCGSI.HK/,0.2767
 2020-07-28,hstech,恒生科技,hk,HSTECH,ps_ttm,aggregate,0,7012.62,baifenwei-percentile-history,1
 2020-08-04,hstech,恒生科技,hk,HSTECH,ps_ttm,aggregate,0,7436.59,baifenwei-percentile-history,1
 2020-08-11,hstech,恒生科技,hk,HSTECH,ps_ttm,aggregate,0,7129.84,baifenwei-percentile-history,0.182
@@ -843,7 +844,8 @@ day,instrument_id,instrument_name,market,code,metric,weighting,value,point,sourc
 2026-09-07,hstech,恒生科技,hk,HSTECH,ps_ttm,aggregate,0,4527.71,baifenwei-percentile-history,0.063
 2026-09-14,hstech,恒生科技,hk,HSTECH,ps_ttm,aggregate,0,4317.94,baifenwei-percentile-history,0.027
 2026-09-21,hstech,恒生科技,hk,HSTECH,ps_ttm,aggregate,0,4423.29,baifenwei-percentile-history,0.045
-2026-10-02,hstech,恒生科技,hk,HSTECH,ps_ttm,aggregate,1.49,4135.85,public-page:https://baifenwei.com/index/hstech/,0.02
+2026-10-02,hstech,恒生科技,hk,HSTECH,ps_ttm,aggregate,0,4157.94,baifenwei-percentile-history,0.015
+2026-10-05,hstech,恒生科技,hk,HSTECH,ps_ttm,aggregate,1.45,4161.6,public-page:https://baifenwei.com/index/hstech/,0.015
 2026-09-30,pharma50,医药50,cn,931140,pb,market_cap_harmonic,3.9938636719,10279.23,reconstructed:csi+eastmoney:market_cap_harmonic,
 2016-09-28,sp500,标普500,us,SP500,pe_ttm,aggregate,23.5314,,danjuan-public-history,
 2016-10-09,sp500,标普500,us,SP500,pe_ttm,aggregate,23.6095,2153.74,danjuan-public-history,
