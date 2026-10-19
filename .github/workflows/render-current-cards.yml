@@ -1,10 +1,6 @@
 name: Render current valuation cards
 
 on:
-  push:
-    paths:
-      - ".github/workflows/render-current-cards.yml"
-      - "scripts/render_report_image.py"
   workflow_dispatch:
 
 permissions:
@@ -34,7 +30,11 @@ jobs:
         env:
           PYTHONPATH: src
         run: python -m unittest discover -s tests -v
-      - name: Render from the saved CURRENT daily snapshot
+      - name: Refresh current valuation snapshot
+        env:
+          PYTHONPATH: src
+        run: python -m valuation_monitor.app --config watchlist.yaml --history data/history.csv --latest data/latest.json --report out/report.html
+      - name: Render from the refreshed daily snapshot
         run: |
           python - <<'PY'
           import json

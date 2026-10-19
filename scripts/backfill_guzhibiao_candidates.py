@@ -13,11 +13,32 @@ from pathlib import Path
 from urllib.parse import quote
 
 import requests
+import yaml
 
-SPECS = [
-    ("csi_dividend", "中证红利", "000922", "dyr", "dividend", "percent", 400),
-    ("pharma50", "医药50", "931140", "pb", "pb", "ratio", 300),
-]
+INDICATORS = {
+    "dyr": ("dividend", "percent", 400),
+    "pe_ttm": ("pe", "ratio", 400),
+    "pb": ("pb", "ratio", 400),
+    "ps_ttm": ("ps", "ratio", 400),
+}
+
+
+def active_specs() -> list[tuple]:
+    config = yaml.safe_load(Path("watchlist.yaml").read_text(encoding="utf-8"))
+    specs = []
+    for item in config.get("instruments", []):
+        src = item.get("source", {})
+        sources = src.get("sources", []) if src.get("type") == "chain" else [src]
+        if not any(candidate.get("type") == "guzhibiao" for candidate in sources):
+            continue
+        for metric in (item.get("metrics") or {}):
+            if metric in INDICATORS:
+                indicator, unit, minimum = INDICATORS[metric]
+                specs.append((item["id"], item["name"], str(item["code"]),
+                              metric, indicator, unit, minimum))
+    return specs
+
+
 FIELDS = ["day", "instrument_id", "instrument_name", "code", "metric", "value",
           "source", "weighting", "coverage_note"]
 BASE = "https://guzhibiao.com/api/index"
@@ -79,11 +100,17 @@ def main() -> None:
                             "Accept":"application/json"})
     all_rows = []
     reports = []
-    for spec in SPECS:
-        rows, report = collect(session, spec)
+    for spec in active_specs():
+        try:
+            rows, report = collect(session, spec)
+        except Exception as exc:
+            print(f"Not available for {spec[1]}: {exc}", flush=True)
+            continue
         all_rows.extend(rows)
         reports.append(report)
         print(json.dumps(report, ensure_ascii=False), flush=True)
+    if not all_rows:
+        raise RuntimeError("No valid active third-party history was collected")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with OUT.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=FIELDS)

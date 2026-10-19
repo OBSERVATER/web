@@ -350,6 +350,19 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
         and r["day"] <= as_of
     ]
     relevant.sort(key=lambda r: r["day"])
+    if item and item.get("series_family"):
+        family = item["series_family"]
+        def family_of(source):
+            if source.startswith("danjuan-public"):
+                return "danjuan"
+            if source.startswith("guzhibiao-public-funddb"):
+                return "funddb"
+            if source.startswith("reconstructed:"):
+                return source.split(":", 1)[0] + ":" + source.split(":", 1)[1].split(":")[0]
+            return source
+        relevant = [r for r in relevant
+                    if family_of(r.get("source", "")) == family
+                    and r.get("weighting") == item.get("weighting")]
     primary_raw_count = sum(
         1 for r in relevant
         if r.get("value") is not None and float(r.get("value") or 0) > 0
@@ -362,7 +375,8 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
     # Use a historical third-party series ONLY as a separately labelled visual
     # fallback. Current values, primary history, and official stats stay intact.
     candidate_mode = (
-        primary_raw_count < 12 and len(candidates) >= 12
+        not (item and item.get("stats")) and not (item and item.get("series_family") == "funddb")
+        and primary_raw_count < 12 and len(candidates) >= 12
         and (as_of - candidates[-1]["day"]).days <= 21
     )
     if candidate_mode:
@@ -379,7 +393,7 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
     txt(draw, (24, 22), name, f["head"])
     name_width = draw.textbbox((0, 0), name, font=f["head"])[2]
     txt(draw, (36 + name_width, 28), code, f["head_code"], MUTED)
-    chart_caption = "第三方历史估值（独立口径）" if candidate_mode else (
+    chart_caption = "第三方历史估值（独立口径）" if candidate_mode or (item and item.get("series_family") == "funddb") else (
         "分位历史（非估值原值）" if percentile_mode else (
             "有效历史不足" if insufficient_mode else "历史估值"
         )

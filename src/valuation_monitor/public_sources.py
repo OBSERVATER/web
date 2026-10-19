@@ -66,6 +66,9 @@ class PublicDataClient:
         if source_type == "reconstructed":
             rows = self._fetch_reconstructed(instrument, end=end)
             return self._attach_index_points(instrument, rows)
+        if source_type == "guzhibiao":
+            rows = self._fetch_guzhibiao(instrument, end=end, latest_only=True)
+            return self._attach_index_points(instrument, rows)
         if source_type == "danjuan":
             rows = self._fetch_danjuan(instrument)
             return self._attach_index_points(instrument, rows)
@@ -121,7 +124,10 @@ class PublicDataClient:
             return sorted(chosen.values(), key=lambda x: (x.metric, x.day))
 
         rows: list[Observation] = []
-        if source_type == "danjuan":
+        if source_type == "guzhibiao":
+            rows = [row for row in self._fetch_guzhibiao(instrument, end=end, latest_only=False)
+                    if start <= row.day <= end]
+        elif source_type == "danjuan":
             rows = self._fetch_danjuan_history(instrument, start, end)
         elif source_type == "csindex_indicator":
             rows = [
@@ -377,6 +383,53 @@ class PublicDataClient:
                 )
             )
         return result
+
+    def _fetch_guzhibiao(
+        self, instrument: Instrument, end: date | None = None, latest_only: bool = False
+    ) -> list[Observation]:
+        """Dated FundDB-native observations, NEVER re-labelled as official index values."""
+        from urllib.parse import quote
+
+        metric_codes = {"dyr": "dividend", "pe_ttm": "pe", "pb": "pb", "ps_ttm": "ps"}
+        end = end or date.today()
+        all_rows: list[Observation] = []
+        for metric in instrument.metrics:
+            indicator = metric_codes.get(metric.key)
+            if indicator is None:
+                continue
+            url = f"https://guzhibiao.com/api/index/{quote(instrument.name, safe='')}/history"
+            data = self._get_json(url, params={"indicator": indicator})
+            if not isinstance(data, dict) or str(data.get("code", "")) != instrument.code:
+                raise PublicSourceError(f"FundDB index identity mismatch: {instrument.name}")
+            if data.get("indicator") != indicator:
+                raise PublicSourceError(f"FundDB metric identity mismatch: {instrument.name}/{indicator}")
+            dates, values = data.get("dates"), data.get("values")
+            if not isinstance(dates, list) or not isinstance(values, list) or len(dates) != len(values):
+                raise PublicSourceError(f"FundDB invalid dated series: {instrument.name}")
+            weekly: dict[tuple[int, int], Observation] = {}
+            for raw_day, raw_value in zip(dates, values):
+                try:
+                    day = date.fromisoformat(str(raw_day))
+                    value = float(raw_value)
+                except (TypeError, ValueError):
+                    continue
+                if not (date(1990, 1, 1) <= day <= end) or not (0 < value < (100 if metric.key == "dyr" else 1000)):
+                    continue
+                if not pd.notna(value):
+                    continue
+                obs = Observation(
+                    day=day, instrument_id=instrument.id, instrument_name=instrument.name,
+                    market=instrument.market, code=instrument.code, metric=metric.key,
+                    weighting="funddb-native-unverified", value=value, point=None,
+                    source="guzhibiao-public-funddb-history",
+                )
+                iso = day.isocalendar()
+                key = (iso.year, iso.week)
+                if key not in weekly or day > weekly[key].day:
+                    weekly[key] = obs
+            all_rows.extend([max(weekly.values(), key=lambda x: x.day)] if latest_only and weekly
+                            else sorted(weekly.values(), key=lambda x: x.day))
+        return sorted(all_rows, key=lambda x: (x.metric, x.day))
 
     def _danjuan_items(self) -> list[dict[str, Any]]:
         if self._danjuan_cache is not None:

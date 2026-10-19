@@ -66,11 +66,21 @@ def save_history(path: str | Path, observations: list[Observation]) -> None:
             writer.writerow(row)
 
 
+def source_family(source: str) -> str:
+    if source.startswith("danjuan-public"):
+        return "danjuan"
+    if source.startswith("guzhibiao-public-funddb"):
+        return "funddb"
+    if source.startswith("reconstructed:"):
+        return source.split(":", 1)[0] + ":" + source.split(":", 1)[1].split(":")[0]
+    return source
+
+
 def merge_weekly(existing: list[Observation], incoming: list[Observation]) -> list[Observation]:
-    by_key: dict[tuple[int, int, str, str], Observation] = {}
+    by_key: dict[tuple[int, int, str, str, str, str], Observation] = {}
     for item in [*existing, *incoming]:
         iso = item.day.isocalendar()
-        key = (iso.year, iso.week, item.instrument_id, item.metric)
+        key = (iso.year, iso.week, item.instrument_id, item.metric, item.weighting, source_family(item.source))
         previous = by_key.get(key)
         if previous is None or item.day >= previous.day:
             by_key[key] = item

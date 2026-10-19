@@ -16,17 +16,15 @@ def format_value(metric: str, value: float | None) -> str:
 
 
 def zone(snapshot: StatSnapshot) -> str:
-    if snapshot.higher_is_cheaper:
-        if snapshot.current >= snapshot.opportunity:
-            return "机会区"
-        if snapshot.current <= snapshot.danger:
-            return "危险区"
-    else:
-        if snapshot.current <= snapshot.opportunity:
-            return "机会区"
-        if snapshot.current >= snapshot.danger:
-            return "危险区"
-    return "中性"
+    percentile = (1.0 - snapshot.percentile if snapshot.higher_is_cheaper
+                  else snapshot.percentile)
+    if percentile <= 0.20:
+        return "低估"
+    if percentile <= 0.50:
+        return "偏低"
+    if percentile <= 0.80:
+        return "偏高"
+    return "高估"
 
 
 def build_html(
@@ -66,9 +64,9 @@ def build_html(
             continue
 
         state = zone(snapshot)
-        if state == "机会区":
+        if state == "低估":
             opportunity_count += 1
-        badge_class = {"机会区": "good", "危险区": "bad", "中性": "neutral"}[state]
+        badge_class = {"低估": "good", "偏低": "good", "偏高": "neutral", "高估": "bad"}[state]
         body_rows.append(
             "<tr>"
             f"<td><strong>{html.escape(instrument.name)}</strong><br><small>{html.escape(instrument.code)}</small></td>"
@@ -103,7 +101,7 @@ th{{font-size:12px;color:#6e6e73;background:#fafafa}}small{{color:#8e8e93}}
 </style></head>
 <body><div class="card">
 <h1>估值监控日报 · {report_day.isoformat()}</h1>
-<p>匿名公开数据源；最多10年周频统计。当前共有 <strong>{opportunity_count}</strong> 项进入机会区。</p>
+<p>匿名公开数据源；最多10年周频统计。当前共有 <strong>{opportunity_count}</strong> 项处于低估区。</p>
 {error_html}
 <table><thead><tr><th>指数</th><th>指标</th><th>当前值</th><th>10Y分位</th><th>机会值</th><th>中位数</th><th>危险值</th><th>均值</th><th>Z</th><th>状态</th><th>点位</th><th>来源</th></tr></thead>
 <tbody>{''.join(body_rows)}</tbody></table>
