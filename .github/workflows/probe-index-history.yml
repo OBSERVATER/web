@@ -1,0 +1,33 @@
+name: Probe index daily history (research only)
+
+on:
+  push:
+    branches:
+      - research/index-history-probe-20261026
+    paths:
+      - .github/workflows/probe-index-history.yml
+      - scripts/probe_index_history.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install AKShare
+        run: pip install "akshare" "pandas" "requests" "openpyxl"
+      - name: Probe historical index closes
+        run: python scripts/probe_index_history.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: historical-closes-probe
+          path: out/index-history-probe/
+          retention-days: 7
