@@ -1,0 +1,35 @@
+name: Compare valuation sources to reference (research)
+
+on:
+  push:
+    branches:
+      - feature/daily-drawdown-20261026
+    paths:
+      - scripts/audit_valuation_vs_reference.py
+      - .github/workflows/audit-valuations.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Compare same-history scenarios and check AKShare FundDB
+        env:
+          PYTHONPATH: src
+        run: python scripts/audit_valuation_vs_reference.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: valuation-source-audit
+          path: out/valuation-source-audit/
+          retention-days: 7
