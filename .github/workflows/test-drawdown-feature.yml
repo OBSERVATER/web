@@ -37,6 +37,7 @@ jobs:
           python -m valuation_monitor.drawdown --config watchlist.yaml --history data/daily_prices.csv --state data/drawdown_state.json --snapshot out/price_snapshot.json --published out/published-issue.json
           python scripts/render_report_image.py
           python scripts/build_issue_comment.py
+          python scripts/audit_nasdaq100.py
           python - <<'PY'
           import json
           from pathlib import Path
@@ -54,5 +55,6 @@ jobs:
           path: |
             out/price_snapshot.json
             out/issue-comment.md
+            out/nasdaq100_analysis.json
             data/daily_prices.csv
           retention-days: 7
