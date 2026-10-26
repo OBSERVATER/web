@@ -102,6 +102,20 @@ def probe(spec):
             attempts.append({"source":"FRED", "status":"ok", "rows":len(frame)})
         except Exception as exc:
             errors.append(f"FRED: {type(exc).__name__}: {str(exc)[:250]}")
+        if not fragments:
+            try:
+                from io import StringIO
+                uri = "https://stooq.com/q/d/l/?s=%5Espx&i=d&d1=19500101&d2=20261026"
+                response = requests.get(uri, timeout=30, headers={"User-Agent":"Mozilla/5.0"})
+                response.raise_for_status()
+                frame = pd.read_csv(StringIO(response.text))
+                frame = normalize(frame, "Date", "Close")
+                if frame.empty:
+                    raise ValueError("empty Stooq series")
+                fragments.append(frame)
+                attempts.append({"source":"Stooq SPX", "status":"ok","rows":len(frame)})
+            except Exception as exc:
+                errors.append(f"Stooq: {type(exc).__name__}: {str(exc)[:250]}")
     else:
         for start, end in years(start_year, TODAY):
             if kind == "cni":
