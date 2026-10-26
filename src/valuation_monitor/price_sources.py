@@ -15,6 +15,7 @@ PRICES = {
     "csi_dividend": ("cn", date(2004, 12, 31), "000922", "csi"),
     "csi300": ("cn", date(2004, 12, 31), "000300", "csi"),
     "sp500": ("us", date(2000, 1, 3), "^GSPC", "yahoo"),
+    "nasdaq100": ("us", date(2000, 1, 3), "^NDX", "yahoo"),
 }
 
 
@@ -77,7 +78,10 @@ def _akshare_daily(kind: str, symbol: str, begin: date, end: date) -> pd.DataFra
 
 
 def _yahoo_daily(symbol: str, begin: date, end: date) -> pd.DataFrame:
-    url = "https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC"
+    if symbol not in ("^GSPC", "^NDX"):
+        raise ValueError(f"Unexpected Yahoo index symbol: {symbol}")
+    from urllib.parse import quote
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{quote(symbol, safe='')}"
     params = {"interval": "1d", "period1": str(int(datetime(begin.year,begin.month,begin.day,tzinfo=timezone.utc).timestamp())),
               "period2": str(int(datetime.combine(end+timedelta(days=1),datetime.min.time(),timezone.utc).timestamp()))}
     reply = requests.get(url, params=params, timeout=30, headers={"User-Agent":"Mozilla/5.0"})
@@ -102,6 +106,6 @@ def fetch_daily(instrument_id: str, begin: date, end: date) -> list[dict]:
     if not values:
         raise ValueError(f"No valid daily close for {instrument_id} ({begin} to {end})")
     # One stable canonical series per index, with a fixed provider identity.
-    source = f"akshare-{kind}:{symbol}" if kind != "yahoo" else "yahoo:^GSPC:price"
+    source = f"akshare-{kind}:{symbol}" if kind != "yahoo" else f"yahoo:{symbol}:price"
     return [{"day": day.isoformat(), "instrument_id": instrument_id,
              "close": price, "source": source} for day, price in sorted(values.items())]
