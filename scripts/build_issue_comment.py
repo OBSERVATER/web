@@ -26,12 +26,15 @@ def instrument_section(item: dict, price: dict) -> list[str]:
     metric = item["metric"]
     lines = [f"### {item['name']}", ""]
     close = price.get("close")
+    triggered = price.get("triggered_drop_pct")
+    shown_drop = triggered if triggered is not None else price.get("drawdown_pct")
     lines.extend([
         f"- 最新收盘：{float(close):,.2f}（{price.get('date') or '—'}）"
         if close is not None else "- 最新收盘：数据暂不可用",
         f"- **较上次：{percent(price.get('change_pct'), True)}**"
         + (f"（对比 {price['previous_date']}）" if price.get("previous_date") else ""),
-        f"- **本轮累计跌幅：{percent(price.get('drawdown_pct'))}**",
+        f"- **本轮累计跌幅：{percent(shown_drop)}**"
+        + ("（已触发，触发后已重置基准）" if triggered is not None else ""),
     ])
     if price.get("status") != "正常":
         lines.append(f"- 价格数据状态：{price.get('status') or '数据不可用'}")
