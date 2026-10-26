@@ -88,26 +88,31 @@ def main():
         result=one(sys.argv[1])
         print("TEST_RESULT_JSON="+json.dumps(result,ensure_ascii=False,default=str),flush=True)
         return
-    results={}
-    for source in SOURCES:
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    def test_source(source):
         try:
-            r=subprocess.run([sys.executable,__file__,source],capture_output=True,text=True,timeout=70)
+            r=subprocess.run([sys.executable,__file__,source],capture_output=True,text=True,timeout=65)
             if r.returncode:
-                results[source]={"status":"error","detail":(r.stderr+"\n"+r.stdout)[-900:]}
-            else:
-                tagged=[line for line in r.stdout.splitlines() if line.startswith("TEST_RESULT_JSON=")]
-                if not tagged:
-                    raise ValueError(f"No output result: {r.stdout[-400:]}")
-                results[source]={"status":"ok",**json.loads(tagged[-1].split("=",1)[1])}
+                return {"status":"error","detail":(r.stderr+"\\n"+r.stdout)[-900:]}
+            tagged=[line for line in r.stdout.splitlines() if line.startswith("TEST_RESULT_JSON=")]
+            if not tagged:
+                raise ValueError(f"No output result: {r.stdout[-400:]}")
+            return {"status":"ok",**json.loads(tagged[-1].split("=",1)[1])}
         except subprocess.TimeoutExpired:
-            results[source]={"status":"timeout","detail":"70 seconds"}
+            return {"status":"timeout","detail":"65 seconds"}
         except Exception as e:
-            results[source]={"status":"error","detail":str(e)}
-        (OUT/"summary.json").write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding="utf-8")
-        record=results[source]
-        print("PROBE",source,record.get("status"),"rows",record.get("rows"),
-              "range",record.get("earliest"),record.get("latest"),
-              "close",record.get("latest_close"),"err",record.get("detail","")[:200],flush=True)
+            return {"status":"error","detail":str(e)}
+    results={}
+    with ThreadPoolExecutor(max_workers=len(SOURCES)) as pool:
+        futures={pool.submit(test_source, source):source for source in SOURCES}
+        for future in as_completed(futures):
+            source=futures[future]
+            results[source]=future.result()
+            (OUT/"summary.json").write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding="utf-8")
+            record=results[source]
+            print("PROBE",source,record.get("status"),"rows",record.get("rows"),
+                  "range",record.get("earliest"),record.get("latest"),
+                  "close",record.get("latest_close"),"err",record.get("detail","")[:200],flush=True)
     print("SUMMARY="+json.dumps(results,ensure_ascii=False),flush=True)
 
 
