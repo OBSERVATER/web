@@ -56,5 +56,8 @@ jobs:
             out/price_snapshot.json
             out/issue-comment.md
             out/nasdaq100_analysis.json
+            out/cards/
+            out/report.html
+            data/latest.json
             data/daily_prices.csv
           retention-days: 7
