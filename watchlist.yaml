@@ -9,6 +9,7 @@ instruments:
     name: 价值100
     market: cn
     code: "980081"
+    price_secid: "0.980081"
     metrics:
       pe_ttm: {}
     source:
@@ -25,6 +26,7 @@ instruments:
     name: 中证红利
     market: cn
     code: "000922"
+    price_secid: "1.000922"
     metrics:
       dyr: {}
     source:
@@ -38,6 +40,7 @@ instruments:
     name: 沪深300
     market: cn
     code: "000300"
+    price_secid: "1.000300"
     metrics:
       pe_ttm: {}
     source:
@@ -56,6 +59,7 @@ instruments:
     name: 标普500
     market: us
     code: "SP500"
+    price_secid: "100.SPX"
     metrics:
       pe_ttm: {}
     source:

@@ -1,0 +1,58 @@
+name: Test daily drawdown (feature branch)
+
+on:
+  push:
+    branches:
+      - feature/daily-drawdown-20261026
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+          pip install -r requirements.txt
+      - name: Run tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -v
+      - name: Dry-run complete monitor
+        env:
+          PYTHONPATH: src
+        run: |
+          mkdir -p out
+          printf '{"published_events":[],"published_reports":[]}' > out/published-issue.json
+          python -m valuation_monitor.app --config watchlist.yaml --history data/history.csv --latest data/latest.json --report out/report.html
+          python -m valuation_monitor.drawdown --config watchlist.yaml --history data/daily_prices.csv --state data/drawdown_state.json --snapshot out/price_snapshot.json --published out/published-issue.json
+          python scripts/render_report_image.py
+          python scripts/build_issue_comment.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('out/price_snapshot.json').read_text())
+          for row in data['items']:
+              print('PRICE_SUMMARY:', row['instrument_id'],row['date'],row['close'],row['status'])
+          assert all(r['close'] is not None for r in data['items']), 'Missing daily price'
+          text=Path('out/issue-comment.md').read_text()
+          assert '较上次' in text and '本轮累计跌幅' in text
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drawdown-feature-validation
+          path: |
+            out/price_snapshot.json
+            out/issue-comment.md
+            data/daily_prices.csv
+          retention-days: 7
