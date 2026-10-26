@@ -67,3 +67,14 @@ instruments:
       name: 标普500
       index_code: "SP500"
       point_secid: "100.SPX"
+
+  - id: nasdaq100
+    name: 纳斯达克100
+    market: us
+    code: "NDX"
+    metrics:
+      pe_ttm: {}
+    source:
+      type: danjuan
+      name: 纳斯达克100
+      index_code: "NDX"
