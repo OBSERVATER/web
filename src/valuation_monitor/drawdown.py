@@ -126,11 +126,16 @@ def calculate(config: dict, history: list[dict], state_data: dict,
                   if latest and previous and latest["source"] == previous["source"] else None)
         drawdown = ((float(state["peak"]) - float(state["last_close"]))
                     / float(state["peak"]) * 100 if state else None)
+        # Reset peak internally, but retain the triggering drop for reporting.
+        triggers = [e for e in new_state["pending"]
+                    if e["instrument_id"] == identifier]
+        triggered_drop = float(triggers[-1]["drop_pct"]) if triggers else None
         items.append({"instrument_id": identifier, "name": name, "market": market,
                       "date": latest["day"] if latest else None,
                       "previous_date": previous["day"] if previous else None,
                       "close": latest["close"] if latest else None,
                       "change_pct": change, "drawdown_pct": max(0.0, drawdown) if drawdown is not None else None,
+                      "triggered_drop_pct": triggered_drop,
                       "peak": state["peak"] if state else None,
                       "status": status, "source": latest["source"] if latest else None})
     return new_state, {"generated_at": now.date().isoformat(),
