@@ -1,4 +1,4 @@
-name: Probe index daily history (research only)
+name: Probe SP500 sources (research only)
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - research/index-history-probe-20261026
     paths:
       - .github/workflows/probe-index-history.yml
-      - scripts/probe_index_history.py
+      - scripts/probe_sp500_sources.py
   workflow_dispatch:
 
 permissions:
@@ -24,10 +24,10 @@ jobs:
       - name: Install AKShare
         run: pip install "akshare" "pandas" "requests" "openpyxl"
       - name: Probe historical index closes
-        run: python scripts/probe_index_history.py
+        run: python scripts/probe_sp500_sources.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: historical-closes-probe
-          path: out/index-history-probe/
+          name: sp500-sources-probe
+          path: out/sp500-sources/
           retention-days: 7
