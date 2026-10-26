@@ -19,7 +19,10 @@ def fmt(metric: str, value: float | None) -> str:
 def percent(value: float | None, signed: bool = False) -> str:
     if value is None:
         return "数据不足"
-    return f"{float(value):+.2f}%" if signed else f"{float(value):.2f}%"
+    value = float(value)
+    if signed and 0 < abs(value) < 0.005:
+        return f"{value:+.3f}%"
+    return f"{value:+.2f}%" if signed else f"{value:.2f}%"
 
 
 def instrument_section(item: dict, price: dict) -> list[str]:
