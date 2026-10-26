@@ -28,19 +28,37 @@ HISTORY_SOURCES={"csi300":"guzhibiao-public-funddb-history",
 OUTPUT=Path("out/valuation-source-audit")
 
 
-def funddb_probe():
-    import akshare as ak
-    df=ak.index_value_hist_funddb(symbol="中证红利",indicator="股息率")
-    df=df.rename(columns={"日期":"day","股息率":"value"})
-    df["day"]=__import__("pandas").to_datetime(df.day,errors="coerce")
-    df["value"]=__import__("pandas").to_numeric(df.value,errors="coerce")
-    df=df.dropna(subset=["day","value"]).sort_values("day")
-    df=df[(df.value>0)&(df.day.dt.date<=date(2026,10,26))]
-    df[["day","value"]].to_csv(OUTPUT/"funddb_api_dividend.csv",index=False)
-    print("SOURCE_RESULT="+json.dumps({"rows":len(df),"first":str(df.iloc[0].day) if len(df) else None,
-                                        "last":str(df.iloc[-1].day) if len(df) else None,
-                                        "current":float(df.iloc[-1].value) if len(df) else None,
-                                        "columns":list(df.columns)},ensure_ascii=False),flush=True)
+def guzhibiao_probe():
+    """Check the currently used public provider; do not mix its values with other families."""
+    from urllib.parse import quote
+    import requests
+    url=f"https://guzhibiao.com/api/index/{quote('中证红利',safe='')}/history"
+    response=requests.get(url,params={"indicator":"dividend"},timeout=25)
+    response.raise_for_status()
+    data=response.json()
+    if not isinstance(data,dict) or str(data.get("code"))!="000922" or data.get("indicator")!="dividend":
+        raise ValueError("Source identity / indicator mismatch")
+    raw=list(zip(data.get("dates") or [],data.get("values") or []))
+    values=[]
+    for d,v in raw:
+        try:
+            day=date.fromisoformat(str(d))
+            value=float(v)
+            if date(2000,1,1)<=day<=date(2026,10,26) and 0<value<100:
+                values.append((day,value))
+        except (ValueError,TypeError):
+            continue
+    values.sort()
+    with (OUTPUT/"guzhibiao_dividend.csv").open("w",encoding="utf-8",newline="") as f:
+        writer=csv.writer(f)
+        writer.writerow(["day","value"])
+        writer.writerows((d.isoformat(),v) for d,v in values)
+    print("SOURCE_RESULT="+json.dumps({"rows":len(values),
+          "first":values[0][0].isoformat() if values else None,
+          "last":values[-1][0].isoformat() if values else None,
+          "current":values[-1][1] if values else None,
+          "provider":"guzhibiao-public-funddb-history"},
+          ensure_ascii=False),flush=True)
 
 
 def values_for_source(path,id,source):
@@ -66,8 +84,8 @@ def compare_stats(reference,stats):
 
 def main():
     OUTPUT.mkdir(parents=True,exist_ok=True)
-    if len(sys.argv)>1 and sys.argv[1]=="--funddb":
-        funddb_probe()
+    if len(sys.argv)>1 and sys.argv[1]=="--guzhibiao":
+        guzhibiao_probe()
         return
     snapshot=json.loads(Path("data/latest.json").read_text(encoding="utf-8"))
     items={x["instrument_id"]:x for x in snapshot["items"]}
@@ -88,7 +106,7 @@ def main():
                      "same_history_screenshot_current_only":compare_stats(ref,alt)})
     candidate={}
     try:
-        cmd=subprocess.run([sys.executable,__file__,"--funddb"],
+        cmd=subprocess.run([sys.executable,__file__,"--guzhibiao"],
                            capture_output=True,text=True,timeout=45)
         if cmd.returncode!=0: raise RuntimeError((cmd.stderr+cmd.stdout)[-1200:])
         entry=[x[len("SOURCE_RESULT="):] for x in cmd.stdout.splitlines()
@@ -98,7 +116,7 @@ def main():
         candidate={"status":"unavailable","error":str(exc)[:1200]}
     report={"benchmark_date":"User screenshots provided 2026-10-26, close references around 2026-10-23",
             "reference_is_observation_not_source_of_truth":True,
-            "results":rows,"akshare_funddb_daily_candidate":candidate}
+            "results":rows,"guzhibiao_live_candidate":candidate}
     (OUTPUT/"audit.json").write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding="utf-8")
     for item in rows:
         key=item["index"]
@@ -106,7 +124,7 @@ def main():
               "baseline_pct_difference",item["baseline"]["percentile"]["difference"],
               "screenshot_current_pct_difference",
               item["same_history_screenshot_current_only"]["percentile"]["difference"],flush=True)
-    print("AKSHARE_FUNDDB",candidate,flush=True)
+    print("GUZHIBIAO_LIVE",candidate,flush=True)
 
 
 if __name__=="__main__":main()
