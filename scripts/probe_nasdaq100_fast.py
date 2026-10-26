@@ -54,8 +54,9 @@ try:
                   "maximum":snap.maximum,"zscore":snap.zscore}
             result["valuation"]["stats"]=vals
             result["valuation"]["comparison"]={k:{"actual":v,
-                "screenshot":result["screenshot"][k],
-                "delta":v-result["screenshot"][k]} for k,v in vals.items()}
+                "screenshot":result["screenshot"]["pe" if k=="current" else k],
+                "delta":v-result["screenshot"]["pe" if k=="current" else k]}
+                for k,v in vals.items()}
 except Exception as e:
     result["valuation_error"]=f"{type(e).__name__}: {e}"
 Path("out/nasdaq100_fast_probe.json").write_text(json.dumps(result,
