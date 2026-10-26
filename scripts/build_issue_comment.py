@@ -59,6 +59,11 @@ def instrument_section(item: dict, price: dict) -> list[str]:
         lines.append(
             f"- 主源核对：{fmt(metric, item['reference_current'])}"
             f"（{item.get('reference_source') or '未知源'}，{item.get('reference_date') or '—'}；独立口径）")
+        if item.get("current") is not None:
+            difference = float(item["current"]) - float(item["reference_current"])
+            unit = "个百分点" if metric == "dyr" else "（估值单位）"
+            lines.append(
+                f"- 异源差异：{difference:+.2f}{unit}（仅供核对，不混合计算）")
     lines.append("")
     return lines
 
