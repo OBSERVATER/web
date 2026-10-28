@@ -5295,6 +5295,7 @@ day,instrument_id,name,close,source
 2026-10-23,csi300,沪深300,4105.33,akshare-csi:000300
 2026-10-26,csi300,沪深300,4103.54,akshare-csi:000300
 2026-10-27,csi300,沪深300,4049.55,akshare-csi:000300
+2026-10-28,csi300,沪深300,4083.87,akshare-csi:000300
 2004-12-31,csi_dividend,中证红利,1000.0,akshare-csi:000922
 2005-01-04,csi_dividend,中证红利,981.56,akshare-csi:000922
 2005-01-05,csi_dividend,中证红利,986.54,akshare-csi:000922
@@ -10591,6 +10592,7 @@ day,instrument_id,name,close,source
 2026-10-23,csi_dividend,中证红利,5398.82,akshare-csi:000922
 2026-10-26,csi_dividend,中证红利,5465.01,akshare-csi:000922
 2026-10-27,csi_dividend,中证红利,5497.74,akshare-csi:000922
+2026-10-28,csi_dividend,中证红利,5499.33,akshare-csi:000922
 2000-01-03,nasdaq100,纳斯达克100,3790.550048828125,yahoo:^NDX:price
 2000-01-04,nasdaq100,纳斯达克100,3546.199951171875,yahoo:^NDX:price
 2000-01-05,nasdaq100,纳斯达克100,3507.31005859375,yahoo:^NDX:price
@@ -17335,6 +17337,7 @@ day,instrument_id,name,close,source
 2026-10-22,nasdaq100,纳斯达克100,28958.689453125,yahoo:^NDX:price
 2026-10-23,nasdaq100,纳斯达克100,28957.529296875,yahoo:^NDX:price
 2026-10-26,nasdaq100,纳斯达克100,29273.400390625,yahoo:^NDX:price
+2026-10-27,nasdaq100,纳斯达克100,29651.439453125,yahoo:^NDX:price
 2000-01-03,sp500,标普500,1455.219970703125,yahoo:^GSPC:price
 2000-01-04,sp500,标普500,1399.4200439453125,yahoo:^GSPC:price
 2000-01-05,sp500,标普500,1402.1099853515625,yahoo:^GSPC:price
@@ -24079,6 +24082,7 @@ day,instrument_id,name,close,source
 2026-10-22,sp500,标普500,7663.43017578125,yahoo:^GSPC:price
 2026-10-23,sp500,标普500,7623.68017578125,yahoo:^GSPC:price
 2026-10-26,sp500,标普500,7676.77001953125,yahoo:^GSPC:price
+2026-10-27,sp500,标普500,7722.60009765625,yahoo:^GSPC:price
 2012-12-31,value100,价值100,1000.0,akshare-cni:980081
 2013-01-04,value100,价值100,1000.6886,akshare-cni:980081
 2013-01-07,value100,价值100,1006.4233,akshare-cni:980081
@@ -27432,3 +27436,4 @@ day,instrument_id,name,close,source
 2026-10-23,value100,价值100,4286.2986,akshare-cni:980081
 2026-10-26,value100,价值100,4322.8229,akshare-cni:980081
 2026-10-27,value100,价值100,4330.6752,akshare-cni:980081
+2026-10-28,value100,价值100,4333.4084,akshare-cni:980081
