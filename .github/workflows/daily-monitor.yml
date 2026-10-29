@@ -2,8 +2,8 @@ name: Daily valuation and drawdown monitor
 
 on:
   schedule:
-    - cron: "30 18 * * *"
-      timezone: "Asia/Shanghai"
+    # 09:30 UTC = 17:30 Asia/Shanghai; leave time for scheduler delays.
+    - cron: "30 9 * * *"
   workflow_dispatch:
     inputs:
       publish:
