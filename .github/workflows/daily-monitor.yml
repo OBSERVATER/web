@@ -1,10 +1,6 @@
 name: Daily valuation and drawdown monitor
 
 on:
-  # Temporary one-time validation trigger; removed after the initial run.
-  push:
-    branches: [main]
-    paths: ['.github/workflows/daily-monitor.yml']
   schedule:
     # Main: 18:30 Beijing
     - cron: "30 10 * * *"
@@ -56,7 +52,7 @@ jobs:
 
       - name: Recover due Beijing 18:30 slots (next-day-open rule unchanged)
         id: gate
-        run: python -m valuation_monitor.calendar_gate --event "${{ github.event_name == 'push' && 'workflow_dispatch' || github.event_name }}"
+        run: python -m valuation_monitor.calendar_gate --event "${{ github.event_name }}"
 
       - name: Unit tests
         if: steps.gate.outputs.run == 'true'
