@@ -1,9 +1,16 @@
 name: Daily valuation and drawdown monitor
 
 on:
+  # Temporary one-time validation trigger; removed after the initial run.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/daily-monitor.yml']
   schedule:
-    # 10:30 UTC = 18:30 Asia/Shanghai; leave time for scheduler delays.
+    # Main: 18:30 Beijing
     - cron: "30 10 * * *"
+    # Recovery: 21:17 Beijing and next morning 07:17 Beijing
+    - cron: "17 13 * * *"
+    - cron: "17 23 * * *"
   workflow_dispatch:
     inputs:
       publish:
@@ -23,7 +30,7 @@ concurrency:
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 100
     env:
       PYTHONPATH: src
       PUBLISH: ${{ github.event_name == 'schedule' || inputs.publish == true }}
@@ -42,62 +49,57 @@ jobs:
           sudo apt-get install -y fonts-noto-cjk
           pip install -r requirements.txt
 
-      - name: Tomorrow market gate (Asia/Shanghai)
+      - name: Scan published report/event IDs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/issue_publication.py --scan
+
+      - name: Recover due Beijing 18:30 slots (next-day-open rule unchanged)
         id: gate
-        run: python -m valuation_monitor.calendar_gate --event "${{ github.event_name }}"
+        run: python -m valuation_monitor.calendar_gate --event "${{ github.event_name == 'push' && 'workflow_dispatch' || github.event_name }}"
 
       - name: Unit tests
         if: steps.gate.outputs.run == 'true'
         run: python -m unittest discover -s tests -v
 
-      - name: Read published event IDs and report IDs
+      - name: Replay missing slots in date order
         if: steps.gate.outputs.run == 'true'
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p out
-          if [ "$PUBLISH" = "true" ]; then
-            python scripts/issue_publication.py --scan
-          else
-            printf '{"published_events":[],"published_reports":[]}' > out/published-issue.json
-          fi
-
-      - name: Update valuations and daily closing-price monitor
-        if: steps.gate.outputs.run == 'true'
-        run: |
-          python -m valuation_monitor.app --config watchlist.yaml --history data/history.csv --latest data/latest.json --report out/report.html
-          python -m valuation_monitor.drawdown --config watchlist.yaml --history data/daily_prices.csv --state data/drawdown_state.json --snapshot out/price_snapshot.json --published out/published-issue.json
-
-      - name: Build charts and Issue comment
-        if: steps.gate.outputs.run == 'true'
-        run: |
-          python scripts/render_report_image.py
-          REPORT_DAY="$(python -c 'import json; print(json.load(open("data/latest.json"))["generated_at"])')"
-          mkdir -p "reports/$REPORT_DAY"
-          cp out/cards/*.png "reports/$REPORT_DAY/"
-          python scripts/build_issue_comment.py
-
-      - name: Persist durable drawdown outbox and report
-        if: steps.gate.outputs.run == 'true' && env.PUBLISH == 'true'
-        shell: bash
         run: |
           set -euo pipefail
-          git add data/history.csv data/latest.json data/daily_prices.csv data/drawdown_state.json reports/
-          if git diff --cached --quiet; then
-            echo "No repository changes"
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "data: update valuation and drawdown monitor [skip ci]"
-            git pull --rebase origin main
-            git push
-          fi
+          while IFS= read -r REPORT_DAY; do
+            [ -n "$REPORT_DAY" ] || continue
+            echo "::group::Scheduled date $REPORT_DAY 18:30 Beijing"
+            python -m valuation_monitor.app \
+              --config watchlist.yaml --history data/history.csv \
+              --latest data/latest.json --report out/report.html \
+              --as-of-date "$REPORT_DAY"
+            python -m valuation_monitor.drawdown \
+              --config watchlist.yaml --history data/daily_prices.csv \
+              --state data/drawdown_state.json --snapshot out/price_snapshot.json \
+              --published out/published-issue.json --as-of-date "$REPORT_DAY"
+            python scripts/render_report_image.py
+            mkdir -p "reports/$REPORT_DAY"
+            cp out/cards/*.png "reports/$REPORT_DAY/"
+            python scripts/build_issue_comment.py
 
-      - name: Publish report to GitHub Issue 1
-        if: steps.gate.outputs.run == 'true' && env.PUBLISH == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python scripts/issue_publication.py --publish
+            if [ "$PUBLISH" = "true" ]; then
+              git add data/history.csv data/latest.json data/daily_prices.csv \
+                data/drawdown_state.json reports/
+              if ! git diff --cached --quiet; then
+                git config user.name "github-actions[bot]"
+                git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                git commit -m "data: update valuation and drawdown for $REPORT_DAY [skip ci]"
+                git pull --rebase origin main
+                git push
+              fi
+              python scripts/issue_publication.py --publish
+              python scripts/issue_publication.py --scan
+            fi
+            echo "::endgroup::"
+          done < out/planned-days.txt
 
       - name: Upload preview and report artifacts
         if: steps.gate.outputs.run == 'true'
@@ -105,6 +107,7 @@ jobs:
         with:
           name: valuation-drawdown-report
           path: |
+            out/planned-days.txt
             out/report.html
             out/cards/
             out/price_snapshot.json

@@ -5,7 +5,7 @@ import argparse
 import csv
 import json
 import math
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -175,6 +175,7 @@ def run(config_path: str, history_path: str, state_path: str,
     now = now or datetime.now(ZoneInfo("Asia/Shanghai"))
     state = read_json(state_path, {"version": 1, "cycles": {}, "pending": []})
     history = load_daily_history(history_path)
+    history = [r for r in history if r['day'] <= now.astimezone(ZoneInfo('Asia/Shanghai')).date().isoformat()]
     incoming, warnings = fetch_prices(config, history, state, now)
     history, conflicts = merge_prices(history, incoming)
     published = set(read_json(published_path, {}).get("published_events", []))
@@ -195,5 +196,7 @@ if __name__ == "__main__":
     parser.add_argument("--state", default="data/drawdown_state.json")
     parser.add_argument("--snapshot", default="out/price_snapshot.json")
     parser.add_argument("--published", default="out/published-issue.json")
+    parser.add_argument("--as-of-date", default=None)
     args = parser.parse_args()
-    run(args.config, args.history, args.state, args.snapshot, args.published)
+    cutoff = (datetime.combine(date.fromisoformat(args.as_of_date), time(18, 30), tzinfo=ZoneInfo("Asia/Shanghai")) if args.as_of_date else None)
+    run(args.config, args.history, args.state, args.snapshot, args.published, cutoff)
