@@ -21,14 +21,14 @@
     },
     "sp500": {
       "peak": 7743.97998046875,
-      "last_close": 7720.39013671875,
-      "last_day": "2026-10-29",
+      "last_close": 7580.06982421875,
+      "last_day": "2026-10-30",
       "source": "yahoo:^GSPC:price"
     },
     "nasdaq100": {
-      "peak": 29813.16015625,
-      "last_close": 29402.509765625,
-      "last_day": "2026-10-29",
+      "peak": 28384.849609375,
+      "last_close": 28384.849609375,
+      "last_day": "2026-10-30",
       "source": "yahoo:^NDX:price"
     },
     "csi_dividend_lowvol": {
@@ -38,5 +38,14 @@
       "source": "akshare-csi:H30269"
     }
   },
-  "pending": []
+  "pending": [
+    {
+      "id": "nasdaq100:2026-10-30:29813.16015625:28384.84960938",
+      "instrument_id": "nasdaq100",
+      "name": "纳斯达克100",
+      "day": "2026-10-30",
+      "drop_pct": 4.790872686388365,
+      "close": 28384.849609375
+    }
+  ]
 }
