@@ -1,7 +1,7 @@
 import unittest
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
-from valuation_monitor.calendar_gate import latest_scheduled_day, planned_days, report_instant, tomorrow_has_open_market
+from valuation_monitor.calendar_gate import latest_scheduled_day, planned_days, report_instant, has_new_closed_session, should_run
 TZ = ZoneInfo("Asia/Shanghai")
 
 class ScheduleRecoveryTests(unittest.TestCase):
@@ -10,20 +10,47 @@ class ScheduleRecoveryTests(unittest.TestCase):
         self.assertEqual(latest_scheduled_day(now), date(2026, 10, 29))
         self.assertEqual(planned_days(now, {"2026-10-28"}, "schedule"), [date(2026, 10, 29)])
 
-    def test_original_market_rule(self):
-        self.assertFalse(tomorrow_has_open_market(date(2026, 10, 30)))
-        self.assertTrue(tomorrow_has_open_market(date(2026, 11, 1)))
+    def test_closed_session_rule(self):
+        self.assertTrue(has_new_closed_session(date(2026, 10, 30)))
+        self.assertTrue(has_new_closed_session(date(2026, 10, 31)))
+        self.assertFalse(has_new_closed_session(date(2026, 11, 1)))
+        self.assertTrue(should_run("schedule", date(2026, 10, 30)))
+        self.assertFalse(should_run("schedule", date(2026, 11, 1)))
 
     def test_recovery_and_dedup(self):
         now = datetime(2026, 11, 3, 19, tzinfo=TZ)
         self.assertEqual(planned_days(now, {"2026-10-29"}, "schedule"),
-                         [date(2026, 11, 1), date(2026, 11, 2), date(2026, 11, 3)])
-        self.assertEqual(planned_days(now, {"2026-10-29", "2026-11-01", "2026-11-02", "2026-11-03"}, "schedule"), [])
+                         [date(2026, 10, 30), date(2026, 10, 31), date(2026, 11, 2), date(2026, 11, 3)])
+        self.assertEqual(planned_days(now, {"2026-10-29", "2026-10-30", "2026-10-31", "2026-11-02", "2026-11-03"}, "schedule"), [])
 
     def test_manual_preview_uses_last_due_slot(self):
         now = datetime(2026, 10, 30, 11, tzinfo=TZ)
         self.assertEqual(planned_days(now, {"2026-10-29"}, "workflow_dispatch"), [date(2026, 10, 29)])
         self.assertEqual(planned_days(now, {"2026-10-29"}, "schedule"), [])
+
+    def test_sunday_recovers_friday_and_us_close(self):
+        now = datetime(2026, 11, 1, 19, tzinfo=TZ)
+        self.assertEqual(planned_days(now, {"2026-10-29"}, "schedule"),
+                         [date(2026, 10, 30), date(2026, 10, 31)])
+
+    def test_saturday_morning_does_not_replay_future_slot(self):
+        now = datetime(2026, 10, 31, 7, 17, tzinfo=TZ)
+        self.assertEqual(planned_days(now, {"2026-10-29"}, "schedule"),
+                         [date(2026, 10, 30)])
+
+    def test_batch_limit_and_future_markers(self):
+        now = datetime(2026, 11, 1, 19, tzinfo=TZ)
+        self.assertEqual(planned_days(now, {"2026-10-29", "2099-01-01"}, "schedule", 1),
+                         [date(2026, 10, 30)])
+        with self.assertRaises(ValueError):
+            planned_days(now, set(), "schedule", 0)
+
+    def test_first_run_and_holiday(self):
+        self.assertEqual(planned_days(datetime(2026, 10, 30, 19, tzinfo=TZ), set(), "schedule"),
+                         [date(2026, 10, 30)])
+        self.assertFalse(has_new_closed_session(date(2026, 1, 2)))
+        self.assertTrue(has_new_closed_session(date(2026, 11, 28)))
+        self.assertFalse(has_new_closed_session(date(2026, 11, 29)))
 
     def test_cutoff(self):
         self.assertEqual(report_instant(date(2026, 10, 29)).isoformat(), "2026-10-29T18:30:00+08:00")

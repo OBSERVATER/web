@@ -35,7 +35,23 @@ def last_closed_session(market: str, now: datetime) -> date | None:
     return completed.index[-1].date() if len(completed) else None
 
 def should_run(event_name: str, scheduled_day: date) -> bool:
-    return event_name == "workflow_dispatch" or tomorrow_has_open_market(scheduled_day)
+    return event_name == "workflow_dispatch" or has_new_closed_session(scheduled_day)
+
+def has_new_closed_session(scheduled_day: date) -> bool:
+    """A report slot covers closes since the previous Beijing 18:30 slot.
+
+    Friday US trading belongs to Saturday's report, after its actual close.
+    Exchange schedules handle holidays, early closes and daylight saving time.
+    """
+    end = report_instant(scheduled_day)
+    start = report_instant(scheduled_day - timedelta(days=1))
+    for market in CALENDARS:
+        schedule = calendar_for(market).schedule(
+            start_date=scheduled_day - timedelta(days=2), end_date=scheduled_day)
+        closes = schedule["market_close"]
+        if ((closes > start) & (closes <= end)).any():
+            return True
+    return False
 
 def latest_scheduled_day(now: datetime) -> date:
     """Latest already-due 18:30 slot, not the GitHub event's unknown target timestamp."""
@@ -52,7 +68,9 @@ def planned_days(now: datetime, published_reports: set[str], event_name: str,
     valid = []
     for value in published_reports:
         try:
-            valid.append(date.fromisoformat(value))
+            parsed = date.fromisoformat(value)
+            if parsed <= latest:
+                valid.append(parsed)
         except ValueError:
             pass
     # First deployment must not create reports for an unbounded historical period.
@@ -61,7 +79,7 @@ def planned_days(now: datetime, published_reports: set[str], event_name: str,
     pending = []
     day = first
     while day <= latest and len(pending) < max_days:
-        if day.isoformat() not in published_reports and tomorrow_has_open_market(day):
+        if day.isoformat() not in published_reports and has_new_closed_session(day):
             pending.append(day)
         day += timedelta(days=1)
     if not pending and event_name == "workflow_dispatch":
