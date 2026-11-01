@@ -52,7 +52,7 @@ def collect(session: requests.Session, spec: tuple) -> tuple[list[dict], dict]:
     response = session.get(url, params={"indicator": indicator}, timeout=30)
     response.raise_for_status()
     payload = response.json()
-    if payload.get("code") != expected_code or payload.get("indicator") != indicator:
+    if str(payload.get("code", "")).upper() != expected_code.upper() or payload.get("indicator") != indicator:
         raise ValueError(f"Unexpected index/metric identity for {name}: {payload.get('code')}/{payload.get('indicator')}")
     days = payload.get("dates")
     values = payload.get("values")

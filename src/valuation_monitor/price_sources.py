@@ -13,6 +13,7 @@ import pandas_market_calendars as mcal
 PRICES = {
     "value100": ("cn", date(2012, 12, 31), "980081", "cni"),
     "csi_dividend": ("cn", date(2004, 12, 31), "000922", "csi"),
+    "csi_dividend_lowvol": ("cn", date(2005, 12, 30), "H30269", "csi"),
     "csi300": ("cn", date(2004, 12, 31), "000300", "csi"),
     "sp500": ("us", date(2000, 1, 3), "^GSPC", "yahoo"),
     "nasdaq100": ("us", date(2000, 1, 3), "^NDX", "yahoo"),

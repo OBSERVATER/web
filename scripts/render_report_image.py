@@ -8,6 +8,8 @@ from pathlib import Path
 
 import yaml
 from PIL import Image, ImageDraw, ImageFont
+from valuation_monitor.history import source_family
+from valuation_monitor.stats import subtract_years
 
 
 WIDTH = 1080
@@ -84,6 +86,8 @@ def load_history(path: Path):
                     "instrument_id": row["instrument_id"],
                     "metric": row["metric"],
                     "value": float(row["value"]),
+                    "source": row.get("source") or "unknown",
+                    "weighting": row.get("weighting") or "aggregate",
                     "point": float(row["point"]) if row.get("point") else None,
                     "reported_percentile": float(row["reported_percentile"]) if row.get("reported_percentile") else None,
                 })
@@ -248,8 +252,8 @@ def draw_chart(draw, box, metric, rows, stats, f):
         key=lambda r: r["day"],
     )
     pct_rows = [r for r in rows if r.get("reported_percentile") is not None]
-    if len(metric_rows) < 12:
-        if len(pct_rows) >= 12:
+    if len(metric_rows) < 2:
+        if len(pct_rows) >= 2:
             draw_percentile_chart(draw, box, rows, f)
         else:
             txt(draw, ((x1 + x2) / 2, (y1 + y2) / 2 - 22),
@@ -283,24 +287,18 @@ def draw_chart(draw, box, metric, rows, stats, f):
         label = f"{value:.2f}" if metric != "dyr" else f"{value:.2f}%"
         txt(draw, (x1 - 12, y), label, f["axis"], MUTED, anchor="rm")
 
-    # x-axis year labels
-    start_y = min_day.year
-    end_y = max_day.year
-    years = list(range(start_y, end_y + 1))
-    if len(years) > 7:
-        step = max(1, math.ceil(len(years) / 6))
-        years = years[::step]
-        if years[-1] != end_y:
-            years.append(end_y)
+    # Short histories need actual dates, not one repeated year label.
     total_days = max(1, (max_day - min_day).days)
-    for year in years:
-        d = date(year, 1, 1)
-        if d < min_day:
-            d = min_day
-        if d > max_day:
-            d = max_day
-        x = x1 + ((d - min_day).days / total_days) * (x2 - x1)
-        txt(draw, (x, y2 + 22), str(year)[2:], f["axis"], MUTED, anchor="ma")
+    if total_days < 366:
+        ticks = sorted({metric_rows[round(i * (len(metric_rows)-1) / 4)]["day"] for i in range(5)})
+    else:
+        years = list(range(min_day.year, max_day.year + 1))
+        step = max(1, math.ceil(len(years) / 6))
+        ticks = [max(min_day, date(y, 1, 1)) for y in years[::step]]
+    for day in ticks:
+        x = x1 + ((day - min_day).days / total_days) * (x2 - x1)
+        label = day.strftime("%m-%d") if total_days < 366 else str(day.year)
+        txt(draw, (x, y2 + 22), label, f["axis"], MUTED, anchor="ma")
 
     metric_pts = line_points(metric_rows, x1, y1, x2, y2, min_day, max_day, lo, hi, "value")
     if metric_pts:
@@ -344,24 +342,17 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
     current = item.get("current") if item else None
     point = item.get("point") if item else None
     as_of = date.fromisoformat(report_day)
+    cutoff = subtract_years(as_of, 10)
     relevant = [
         r for r in history
         if r["instrument_id"] == spec["id"] and r["metric"] == metric
-        and r["day"] <= as_of
+        and cutoff <= r["day"] <= as_of
     ]
     relevant.sort(key=lambda r: r["day"])
     if item and item.get("series_family"):
         family = item["series_family"]
-        def family_of(source):
-            if source.startswith("danjuan-public"):
-                return "danjuan"
-            if source.startswith("guzhibiao-public-funddb"):
-                return "funddb"
-            if source.startswith("reconstructed:"):
-                return source.split(":", 1)[0] + ":" + source.split(":", 1)[1].split(":")[0]
-            return source
         relevant = [r for r in relevant
-                    if family_of(r.get("source", "")) == family
+                    if source_family(r.get("source", "")) == family
                     and r.get("weighting") == item.get("weighting")]
     primary_raw_count = sum(
         1 for r in relevant
@@ -369,7 +360,7 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
     )
     candidates = sorted(
         (r for r in (candidate_history or [])
-         if r["instrument_id"] == spec["id"] and r["metric"] == metric and r["day"] <= as_of),
+         if r["instrument_id"] == spec["id"] and r["metric"] == metric and cutoff <= r["day"] <= as_of),
         key=lambda r: r["day"],
     )
     # Use a historical third-party series ONLY as a separately labelled visual
@@ -386,8 +377,8 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
         if r.get("value") is not None and float(r.get("value") or 0) > 0
     )
     pct_history_count = sum(1 for r in relevant if r.get("reported_percentile") is not None)
-    percentile_mode = raw_history_count < 12 and pct_history_count >= 12
-    insufficient_mode = raw_history_count < 12 and not percentile_mode
+    percentile_mode = raw_history_count < 2 and pct_history_count >= 2
+    insufficient_mode = raw_history_count < 2 and not percentile_mode
 
     draw.rectangle((0, 0, WIDTH, 70), fill="#E9E9E9")
     txt(draw, (24, 22), name, f["head"])
@@ -395,7 +386,7 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
     txt(draw, (36 + name_width, 28), code, f["head_code"], MUTED)
     chart_caption = "第三方历史估值（独立口径）" if candidate_mode or (item and item.get("series_family") == "funddb") else (
         "分位历史（非估值原值）" if percentile_mode else (
-            "有效历史不足" if insufficient_mode else "历史估值"
+            "有效历史不足" if insufficient_mode else "短期历史（不足10年）" if not (item and item.get("stats")) else "历史估值"
         )
     )
     txt(draw, (WIDTH - 24, 29), f"{report_day} · {chart_caption}", f["head_code"], MUTED, anchor="ra")
@@ -421,7 +412,7 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
     card_w = (inner_w - gap * 4) / 5
     summary = [
         ("当前值·主源" if candidate_mode else "当前值", fmt(metric, current), TEXT),
-        (percentile_label, "—" if percentile is None else f"{float(percentile) * 100:.1f}%", TEXT),
+        (percentile_label, "—" if percentile is None else f"{float(percentile) * 100:.2f}%", TEXT),
         ("机会值", fmt(metric, stats.get("opportunity") if stats else None), GREEN),
         ("中位数", fmt(metric, stats.get("median") if stats else None), TEXT),
         ("危险值", fmt(metric, stats.get("danger") if stats else None), RED),
@@ -464,7 +455,7 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
             ("历史样本", str(raw_history_count)),
             ("分位样本", str(pct_history_count)),
             ("指数点位", "—" if point is None else f"{float(point):,.2f}"),
-            ("数据状态", "仅分位历史" if percentile_mode else "原值不足"),
+            ("数据状态", "仅分位历史" if percentile_mode else "历史不足" if raw_history_count < 450 else "已有曲线"),
             ("目标", "10Y / 450周"),
         ]
 
@@ -477,7 +468,7 @@ def render_one(out_path: Path, report_day: str, spec, item, history, f, candidat
     ly = PANEL_Y + PANEL_H - 18
     lx = PANEL_X + 22
     if insufficient_mode:
-        txt(draw, (lx, ly), "仅展示真实已采样值；不足12周不绘制历史曲线", f["small"], MUTED, anchor="lm")
+        txt(draw, (lx, ly), "仅展示真实已采样值；不足2个样本无法连线", f["small"], MUTED, anchor="lm")
     elif candidate_mode:
         draw.ellipse((lx, ly - 6, lx + 12, ly + 6), fill=CYAN)
         txt(draw, (lx + 20, ly), "第三方 FundDB 历史原值（与主源可能存在口径差异）", f["small"], TEXT, anchor="lm")

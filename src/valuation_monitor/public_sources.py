@@ -399,7 +399,7 @@ class PublicDataClient:
                 continue
             url = f"https://guzhibiao.com/api/index/{quote(instrument.name, safe='')}/history"
             data = self._get_json(url, params={"indicator": indicator})
-            if not isinstance(data, dict) or str(data.get("code", "")) != instrument.code:
+            if not isinstance(data, dict) or str(data.get("code", "")).upper() != instrument.code.upper():
                 raise PublicSourceError(f"FundDB index identity mismatch: {instrument.name}")
             if data.get("indicator") != indicator:
                 raise PublicSourceError(f"FundDB metric identity mismatch: {instrument.name}/{indicator}")

@@ -36,6 +36,19 @@ instruments:
           dyr_field: dyr2
         - type: guzhibiao
 
+  - id: csi_dividend_lowvol
+    name: 红利低波
+    market: cn
+    code: "H30269"
+    metrics:
+      dyr: {}
+    source:
+      type: chain
+      sources:
+        - type: csindex_indicator
+          dyr_field: dyr2
+        - type: guzhibiao
+
   - id: csi300
     name: 沪深300
     market: cn
