@@ -1,7 +1,7 @@
 import unittest
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
-from valuation_monitor.calendar_gate import latest_scheduled_day, planned_days, report_instant, has_new_closed_session, should_run
+from valuation_monitor.calendar_gate import latest_scheduled_day, planned_days, report_instant, has_new_closed_session, should_run, unpublished_gaps
 TZ = ZoneInfo("Asia/Shanghai")
 
 class ScheduleRecoveryTests(unittest.TestCase):
@@ -51,6 +51,18 @@ class ScheduleRecoveryTests(unittest.TestCase):
         self.assertFalse(has_new_closed_session(date(2026, 1, 2)))
         self.assertTrue(has_new_closed_session(date(2026, 11, 28)))
         self.assertFalse(has_new_closed_session(date(2026, 11, 29)))
+
+    def test_detects_middle_gap_without_replaying_newer_state(self):
+        now = datetime(2026, 11, 4, 19, tzinfo=TZ)
+        published = {"2026-11-02", "2026-11-04"}
+        # Keep forward-only replay behavior; a missing older day requires repair.
+        self.assertEqual(planned_days(now, published, "schedule"), [])
+        self.assertEqual(unpublished_gaps(now, published), [date(2026, 11, 3)])
+
+    def test_no_middle_gap_on_non_trading_day(self):
+        now = datetime(2026, 11, 2, 19, tzinfo=TZ)
+        published = {"2026-10-31", "2026-11-02"}
+        self.assertEqual(unpublished_gaps(now, published), [])
 
     def test_cutoff(self):
         self.assertEqual(report_instant(date(2026, 10, 29)).isoformat(), "2026-10-29T18:30:00+08:00")
