@@ -87,6 +87,35 @@ def planned_days(now: datetime, published_reports: set[str], event_name: str,
         return [latest]
     return pending
 
+def unpublished_gaps(now: datetime, published_reports: set[str]) -> list[date]:
+    """Detect missed report slots *before* an already published newer slot.
+
+    Do not automatically replay these older reports: drawdown state is forward-only.
+    An alert is safer than writing historical state over newer persisted state.
+    """
+    latest = latest_scheduled_day(now)
+    valid = []
+    for value in published_reports:
+        try:
+            day = date.fromisoformat(value)
+            if day <= latest:
+                valid.append(day)
+        except ValueError:
+            pass
+    if not valid:
+        return []
+    newest = max(valid)
+    first = max(min(valid) + timedelta(days=1),
+                latest - timedelta(days=MAX_RECOVERY_DAYS))
+    gaps = []
+    day = first
+    while day < newest:
+        if day.isoformat() not in published_reports and has_new_closed_session(day):
+            gaps.append(day)
+        day += timedelta(days=1)
+    return gaps
+
+
 def report_instant(scheduled_day: date) -> datetime:
     return datetime.combine(scheduled_day, REPORT_TIME, tzinfo=SHANGHAI)
 
@@ -104,6 +133,10 @@ def main() -> None:
         "published_reports", []))
     now = datetime.now(SHANGHAI)
     days = planned_days(now, published, args.event)
+    gaps = unpublished_gaps(now, published)
+    if gaps:
+        print("::warning::Older unpublished report slots found (manual state-safe recovery "
+              f"required): {','.join(map(str, gaps))}")
     target = Path(args.dates_file)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("".join(f"{d.isoformat()}\n" for d in days), encoding="utf-8")
