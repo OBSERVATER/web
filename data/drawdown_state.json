@@ -3,38 +3,38 @@
   "cycles": {
     "value100": {
       "peak": 4450.6457,
-      "last_close": 4438.8816,
-      "last_day": "2026-11-04",
+      "last_close": 4423.0344,
+      "last_day": "2026-11-05",
       "source": "akshare-cni:980081"
     },
     "csi_dividend": {
       "peak": 5594.87,
-      "last_close": 5590.82,
-      "last_day": "2026-11-04",
+      "last_close": 5517.81,
+      "last_day": "2026-11-05",
       "source": "akshare-csi:000922"
     },
     "csi300": {
-      "peak": 4101.34,
-      "last_close": 4101.34,
-      "last_day": "2026-11-04",
+      "peak": 4113.41,
+      "last_close": 4113.41,
+      "last_day": "2026-11-05",
       "source": "akshare-csi:000300"
     },
     "sp500": {
       "peak": 7743.97998046875,
-      "last_close": 7568.919921875,
-      "last_day": "2026-11-03",
+      "last_close": 7688.6201171875,
+      "last_day": "2026-11-04",
       "source": "yahoo:^GSPC:price"
     },
     "nasdaq100": {
-      "peak": 28384.849609375,
-      "last_close": 28180.259765625,
-      "last_day": "2026-11-03",
+      "peak": 28437.169921875,
+      "last_close": 28437.169921875,
+      "last_day": "2026-11-04",
       "source": "yahoo:^NDX:price"
     },
     "csi_dividend_lowvol": {
       "peak": 11380.1,
-      "last_close": 11279.98,
-      "last_day": "2026-11-04",
+      "last_close": 11182.31,
+      "last_day": "2026-11-05",
       "source": "akshare-csi:H30269"
     }
   },
