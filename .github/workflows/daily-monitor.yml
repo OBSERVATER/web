@@ -2,11 +2,19 @@ name: Daily valuation and drawdown monitor
 
 on:
   schedule:
-    # Main: 18:30 Beijing
-    - cron: "30 10 * * *"
-    # Recovery: 21:17 Beijing and next morning 07:17 Beijing
-    - cron: "17 13 * * *"
-    - cron: "17 23 * * *"
+    # Primary: 18:30 Beijing. All times below are explicitly Asia/Shanghai.
+    - cron: "30 18 * * *"
+      timezone: "Asia/Shanghai"
+    # Staggered GitHub-native recovery checks; publication is idempotent.
+    - cron: "47 18 * * *"
+      timezone: "Asia/Shanghai"
+    - cron: "7,37 19 * * *"
+      timezone: "Asia/Shanghai"
+    - cron: "17 20,21,23 * * *"
+      timezone: "Asia/Shanghai"
+    # Next morning, to recover delayed or skipped evening triggers.
+    - cron: "17 7 * * *"
+      timezone: "Asia/Shanghai"
   workflow_dispatch:
     inputs:
       publish:
@@ -33,6 +41,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Log schedule origin and actual runner time
+        env:
+          TRIGGER_EVENT: ${{ github.event_name }}
+          TRIGGER_CRON: ${{ github.event.schedule }}
+        run: |
+          echo "Trigger event: $TRIGGER_EVENT"
+          echo "Trigger cron: ${TRIGGER_CRON:-manual} (Asia/Shanghai)"
+          echo "Runner UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "Runner Beijing: $(TZ=Asia/Shanghai date +'%Y-%m-%dT%H:%M:%S%z')"
 
       - uses: actions/setup-python@v5
         with:
