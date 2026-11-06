@@ -5302,6 +5302,7 @@ day,instrument_id,name,close,source
 2026-11-03,csi300,沪深300,4008.87,akshare-csi:000300
 2026-11-04,csi300,沪深300,4101.34,akshare-csi:000300
 2026-11-05,csi300,沪深300,4113.41,akshare-csi:000300
+2026-11-06,csi300,沪深300,4054.28,akshare-csi:000300
 2004-12-31,csi_dividend,中证红利,1000.0,akshare-csi:000922
 2005-01-04,csi_dividend,中证红利,981.56,akshare-csi:000922
 2005-01-05,csi_dividend,中证红利,986.54,akshare-csi:000922
@@ -10605,6 +10606,7 @@ day,instrument_id,name,close,source
 2026-11-03,csi_dividend,中证红利,5594.87,akshare-csi:000922
 2026-11-04,csi_dividend,中证红利,5590.82,akshare-csi:000922
 2026-11-05,csi_dividend,中证红利,5517.81,akshare-csi:000922
+2026-11-06,csi_dividend,中证红利,5532.07,akshare-csi:000922
 2005-12-30,csi_dividend_lowvol,红利低波,1009.34,akshare-csi:H30269
 2006-01-04,csi_dividend_lowvol,红利低波,1009.34,akshare-csi:H30269
 2006-01-05,csi_dividend_lowvol,红利低波,1032.57,akshare-csi:H30269
@@ -15666,6 +15668,7 @@ day,instrument_id,name,close,source
 2026-11-03,csi_dividend_lowvol,红利低波,11335.6,akshare-csi:H30269
 2026-11-04,csi_dividend_lowvol,红利低波,11279.98,akshare-csi:H30269
 2026-11-05,csi_dividend_lowvol,红利低波,11182.31,akshare-csi:H30269
+2026-11-06,csi_dividend_lowvol,红利低波,11299.76,akshare-csi:H30269
 2000-01-03,nasdaq100,纳斯达克100,3790.550048828125,yahoo:^NDX:price
 2000-01-04,nasdaq100,纳斯达克100,3546.199951171875,yahoo:^NDX:price
 2000-01-05,nasdaq100,纳斯达克100,3507.31005859375,yahoo:^NDX:price
@@ -22417,6 +22420,7 @@ day,instrument_id,name,close,source
 2026-11-02,nasdaq100,纳斯达克100,27989.8203125,yahoo:^NDX:price
 2026-11-03,nasdaq100,纳斯达克100,28180.259765625,yahoo:^NDX:price
 2026-11-04,nasdaq100,纳斯达克100,28437.169921875,yahoo:^NDX:price
+2026-11-05,nasdaq100,纳斯达克100,26629.810546875,yahoo:^NDX:price
 2000-01-03,sp500,标普500,1455.219970703125,yahoo:^GSPC:price
 2000-01-04,sp500,标普500,1399.4200439453125,yahoo:^GSPC:price
 2000-01-05,sp500,标普500,1402.1099853515625,yahoo:^GSPC:price
@@ -29168,6 +29172,7 @@ day,instrument_id,name,close,source
 2026-11-02,sp500,标普500,7541.39990234375,yahoo:^GSPC:price
 2026-11-03,sp500,标普500,7568.919921875,yahoo:^GSPC:price
 2026-11-04,sp500,标普500,7688.6201171875,yahoo:^GSPC:price
+2026-11-05,sp500,标普500,7353.72998046875,yahoo:^GSPC:price
 2012-12-31,value100,价值100,1000.0,akshare-cni:980081
 2013-01-04,value100,价值100,1000.6886,akshare-cni:980081
 2013-01-07,value100,价值100,1006.4233,akshare-cni:980081
@@ -32528,3 +32533,4 @@ day,instrument_id,name,close,source
 2026-11-03,value100,价值100,4450.6457,akshare-cni:980081
 2026-11-04,value100,价值100,4438.8816,akshare-cni:980081
 2026-11-05,value100,价值100,4423.0344,akshare-cni:980081
+2026-11-06,value100,价值100,4434.94,akshare-cni:980081

@@ -522,9 +522,9 @@ day,instrument_id,instrument_name,market,code,metric,weighting,value,point,sourc
 2026-10-30,csi300,沪深300,cn,000300,pe_ttm,aggregate,15,3985.5,csindex-official-public,
 2026-10-30,csi300,沪深300,cn,000300,pe_ttm,funddb-native-unverified,12.93,,guzhibiao-public-funddb-history,
 2026-11-01,csi300,沪深300,cn,000300,pe_ttm,danjuan-native,13.5227,3985.5,danjuan-public,0.68
-2026-11-04,csi300,沪深300,cn,000300,pe_ttm,danjuan-native,13.5434,4101.34,danjuan-public,0.6836
-2026-11-05,csi300,沪深300,cn,000300,pe_ttm,aggregate,15.46,4113.41,csindex-official-public,
+2026-11-05,csi300,沪深300,cn,000300,pe_ttm,danjuan-native,13.4802,4113.41,danjuan-public,0.668
 2026-11-05,csi300,沪深300,cn,000300,pe_ttm,funddb-native-unverified,13.62,,guzhibiao-public-funddb-history,
+2026-11-06,csi300,沪深300,cn,000300,pe_ttm,aggregate,15.24,4054.28,csindex-official-public,
 2016-09-14,csi_dividend,中证红利,cn,000922,dyr,funddb-native-unverified,3.72,,guzhibiao-public-funddb-history,
 2016-09-23,csi_dividend,中证红利,cn,000922,dyr,funddb-native-unverified,3.68,,guzhibiao-public-funddb-history,
 2016-09-30,csi_dividend,中证红利,cn,000922,dyr,funddb-native-unverified,3.65,,guzhibiao-public-funddb-history,
@@ -1052,8 +1052,8 @@ day,instrument_id,instrument_name,market,code,metric,weighting,value,point,sourc
 2026-10-23,csi_dividend,中证红利,cn,000922,dyr,funddb-native-unverified,4.51,,guzhibiao-public-funddb-history,
 2026-10-30,csi_dividend,中证红利,cn,000922,dyr,aggregate,4.23,,csindex-official-public,
 2026-10-30,csi_dividend,中证红利,cn,000922,dyr,funddb-native-unverified,4.28,,guzhibiao-public-funddb-history,
-2026-11-05,csi_dividend,中证红利,cn,000922,dyr,aggregate,4.29,,csindex-official-public,
 2026-11-05,csi_dividend,中证红利,cn,000922,dyr,funddb-native-unverified,4.39,,guzhibiao-public-funddb-history,
+2026-11-06,csi_dividend,中证红利,cn,000922,dyr,aggregate,4.28,,csindex-official-public,
 2016-11-04,csi_dividend_lowvol,红利低波,cn,H30269,dyr,funddb-native-unverified,4.45,,guzhibiao-public-funddb-history,
 2016-11-11,csi_dividend_lowvol,红利低波,cn,H30269,dyr,funddb-native-unverified,4.41,,guzhibiao-public-funddb-history,
 2016-11-18,csi_dividend_lowvol,红利低波,cn,H30269,dyr,funddb-native-unverified,4.4,,guzhibiao-public-funddb-history,
@@ -1570,8 +1570,8 @@ day,instrument_id,instrument_name,market,code,metric,weighting,value,point,sourc
 2026-10-23,csi_dividend_lowvol,红利低波,cn,H30269,dyr,funddb-native-unverified,4.56,,guzhibiao-public-funddb-history,
 2026-10-30,csi_dividend_lowvol,红利低波,cn,H30269,dyr,aggregate,4.74,,csindex-official-public,
 2026-10-30,csi_dividend_lowvol,红利低波,cn,H30269,dyr,funddb-native-unverified,4.3,,guzhibiao-public-funddb-history,
-2026-11-05,csi_dividend_lowvol,红利低波,cn,H30269,dyr,aggregate,4.83,,csindex-official-public,
 2026-11-05,csi_dividend_lowvol,红利低波,cn,H30269,dyr,funddb-native-unverified,4.41,,guzhibiao-public-funddb-history,
+2026-11-06,csi_dividend_lowvol,红利低波,cn,H30269,dyr,aggregate,4.77,,csindex-official-public,
 2016-09-30,hscgsi,恒生消费,hk,HSCGSI,pb,aggregate,2.05,,stockcheck-public-history,
 2016-10-07,hscgsi,恒生消费,hk,HSCGSI,pb,aggregate,2.09,,stockcheck-public-history,
 2016-10-14,hscgsi,恒生消费,hk,HSCGSI,pb,aggregate,2.09,,stockcheck-public-history,
@@ -2940,7 +2940,7 @@ day,instrument_id,instrument_name,market,code,metric,weighting,value,point,sourc
 2026-10-18,nasdaq100,纳斯达克100,us,NDX,pe_ttm,aggregate,29.7418,,danjuan-public-history,
 2026-10-25,nasdaq100,纳斯达克100,us,NDX,pe_ttm,aggregate,28.8892,,danjuan-public-history,
 2026-11-01,nasdaq100,纳斯达克100,us,NDX,pe_ttm,aggregate,26.9833,,danjuan-public-history,
-2026-11-03,nasdaq100,纳斯达克100,us,NDX,pe_ttm,aggregate,27.4824,,danjuan-public,0.2828
+2026-11-04,nasdaq100,纳斯达克100,us,NDX,pe_ttm,aggregate,25.9623,,danjuan-public,0.2004
 2026-09-30,pharma50,医药50,cn,931140,pb,market_cap_harmonic,3.9938636719,10279.23,reconstructed:csi+eastmoney:market_cap_harmonic,
 2026-10-09,pharma50,医药50,cn,931140,pb,market_cap_harmonic,3.87278591379,10018.54,reconstructed:csi+eastmoney:market_cap_harmonic,
 2026-10-16,pharma50,医药50,cn,931140,pb,market_cap_harmonic,3.76814116085,9716.5,reconstructed:csi+eastmoney:market_cap_harmonic,
@@ -2949,7 +2949,7 @@ day,instrument_id,instrument_name,market,code,metric,weighting,value,point,sourc
 2016-10-16,sp500,标普500,us,SP500,pe_ttm,aggregate,23.2867,2132.98,danjuan-public-history,
 2016-10-23,sp500,标普500,us,SP500,pe_ttm,aggregate,23.5836,2141.16,danjuan-public-history,
 2016-10-30,sp500,标普500,us,SP500,pe_ttm,aggregate,23.2131,,danjuan-public-history,
-2016-11-06,sp500,标普500,us,SP500,pe_ttm,aggregate,22.4147,,danjuan-public-history,
+2016-11-06,sp500,标普500,us,SP500,pe_ttm,aggregate,22.4147,2085.18,danjuan-public-history,
 2016-11-13,sp500,标普500,us,SP500,pe_ttm,aggregate,22.8026,2164.45,danjuan-public-history,
 2016-11-20,sp500,标普500,us,SP500,pe_ttm,aggregate,23.1767,2181.9,danjuan-public-history,
 2016-11-27,sp500,标普500,us,SP500,pe_ttm,aggregate,23.2626,2213.35,danjuan-public-history,
@@ -3470,7 +3470,7 @@ day,instrument_id,instrument_name,market,code,metric,weighting,value,point,sourc
 2026-10-18,sp500,标普500,us,SP500,pe_ttm,aggregate,24.9048,7659.44,danjuan-public-history,
 2026-10-25,sp500,标普500,us,SP500,pe_ttm,aggregate,24.5866,7623.68,danjuan-public-history,
 2026-11-01,sp500,标普500,us,SP500,pe_ttm,aggregate,23.6296,7580.07,danjuan-public-history,
-2026-11-03,sp500,标普500,us,SP500,pe_ttm,aggregate,23.9273,7568.92,danjuan-public,0.4448
+2026-11-04,sp500,标普500,us,SP500,pe_ttm,aggregate,22.8382,7688.62,danjuan-public,0.2476
 2026-09-30,value100,价值100,cn,980081,pe_ttm,index_weight_harmonic,8.83200440839,4413.04,reconstructed:cni+eastmoney:index_weight_harmonic,
 2026-10-09,value100,价值100,cn,980081,pe_ttm,index_weight_harmonic,8.90748519804,4457.38,reconstructed:cni+eastmoney:index_weight_harmonic,
 2026-10-16,value100,价值100,cn,980081,pe_ttm,index_weight_harmonic,8.83366953655,4409.97,reconstructed:cni+eastmoney:index_weight_harmonic,
@@ -3478,5 +3478,5 @@ day,instrument_id,instrument_name,market,code,metric,weighting,value,point,sourc
 2026-10-23,value100,价值100,cn,980081,pe_ttm,aggregate,8.314,4247.71,cnindex-official-public,
 2026-10-28,value100,价值100,cn,980081,pe_ttm,aggregate,8.4569,4333.41,cnindex-official-public,
 2026-10-30,value100,价值100,cn,980081,pe_ttm,index_weight_harmonic,9.09509807671,,reconstructed:cni+eastmoney:index_weight_harmonic,
-2026-11-05,value100,价值100,cn,980081,pe_ttm,index_weight_harmonic,9.27514124665,4423.03,reconstructed:cni+eastmoney:index_weight_harmonic,
-2026-11-05,value100,价值100,cn,980081,pe_ttm,aggregate,8.9715,4423.03,cnindex-official-public,
+2026-11-06,value100,价值100,cn,980081,pe_ttm,index_weight_harmonic,9.30157479539,4434.94,reconstructed:cni+eastmoney:index_weight_harmonic,
+2026-11-06,value100,价值100,cn,980081,pe_ttm,aggregate,8.8793,4434.94,cnindex-official-public,
