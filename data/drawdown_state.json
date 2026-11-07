@@ -20,15 +20,15 @@
       "source": "akshare-csi:000300"
     },
     "sp500": {
-      "peak": 7353.72998046875,
-      "last_close": 7353.72998046875,
-      "last_day": "2026-11-05",
+      "peak": 7376.85986328125,
+      "last_close": 7376.85986328125,
+      "last_day": "2026-11-06",
       "source": "yahoo:^GSPC:price"
     },
     "nasdaq100": {
-      "peak": 26629.810546875,
-      "last_close": 26629.810546875,
-      "last_day": "2026-11-05",
+      "peak": 26989.990234375,
+      "last_close": 26989.990234375,
+      "last_day": "2026-11-06",
       "source": "yahoo:^NDX:price"
     },
     "csi_dividend_lowvol": {
@@ -38,22 +38,5 @@
       "source": "akshare-csi:H30269"
     }
   },
-  "pending": [
-    {
-      "id": "sp500:2026-11-05:7743.97998047:7353.72998047",
-      "instrument_id": "sp500",
-      "name": "标普500",
-      "day": "2026-11-05",
-      "drop_pct": 5.039398358263548,
-      "close": 7353.72998046875
-    },
-    {
-      "id": "nasdaq100:2026-11-05:28437.16992188:26629.81054688",
-      "instrument_id": "nasdaq100",
-      "name": "纳斯达克100",
-      "day": "2026-11-05",
-      "drop_pct": 6.355623221176125,
-      "close": 26629.810546875
-    }
-  ]
+  "pending": []
 }
