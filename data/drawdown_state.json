@@ -3,8 +3,8 @@
   "cycles": {
     "value100": {
       "peak": 4450.6457,
-      "last_close": 4332.2566,
-      "last_day": "2026-11-12",
+      "last_close": 4359.3522,
+      "last_day": "2026-11-13",
       "source": "akshare-cni:980081"
     },
     "csi_dividend": {
@@ -21,14 +21,14 @@
     },
     "sp500": {
       "peak": 7619.3798828125,
-      "last_close": 7619.3798828125,
-      "last_day": "2026-11-11",
+      "last_close": 7592.39990234375,
+      "last_day": "2026-11-12",
       "source": "yahoo:^GSPC:price"
     },
     "nasdaq100": {
       "peak": 28374.25,
-      "last_close": 28374.25,
-      "last_day": "2026-11-11",
+      "last_close": 28289.189453125,
+      "last_day": "2026-11-12",
       "source": "yahoo:^NDX:price"
     },
     "csi_dividend_lowvol": {
