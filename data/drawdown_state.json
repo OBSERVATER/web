@@ -21,14 +21,14 @@
     },
     "sp500": {
       "peak": 7619.3798828125,
-      "last_close": 7592.39990234375,
-      "last_day": "2026-11-12",
+      "last_close": 7561.669921875,
+      "last_day": "2026-11-13",
       "source": "yahoo:^GSPC:price"
     },
     "nasdaq100": {
       "peak": 28374.25,
-      "last_close": 28289.189453125,
-      "last_day": "2026-11-12",
+      "last_close": 27943.740234375,
+      "last_day": "2026-11-13",
       "source": "yahoo:^NDX:price"
     },
     "csi_dividend_lowvol": {
