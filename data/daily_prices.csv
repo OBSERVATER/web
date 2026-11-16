@@ -5306,6 +5306,9 @@ day,instrument_id,name,close,source
 2026-11-09,csi300,沪深300,4056.11,akshare-csi:000300
 2026-11-10,csi300,沪深300,4059.11,akshare-csi:000300
 2026-11-11,csi300,沪深300,4075.71,akshare-csi:000300
+2026-11-12,csi300,沪深300,4043.93,akshare-csi:000300
+2026-11-13,csi300,沪深300,4016.29,akshare-csi:000300
+2026-11-16,csi300,沪深300,3979.8,akshare-csi:000300
 2004-12-31,csi_dividend,中证红利,1000.0,akshare-csi:000922
 2005-01-04,csi_dividend,中证红利,981.56,akshare-csi:000922
 2005-01-05,csi_dividend,中证红利,986.54,akshare-csi:000922
@@ -10613,6 +10616,9 @@ day,instrument_id,name,close,source
 2026-11-09,csi_dividend,中证红利,5561.92,akshare-csi:000922
 2026-11-10,csi_dividend,中证红利,5529.32,akshare-csi:000922
 2026-11-11,csi_dividend,中证红利,5525.1,akshare-csi:000922
+2026-11-12,csi_dividend,中证红利,5492.27,akshare-csi:000922
+2026-11-13,csi_dividend,中证红利,5510.92,akshare-csi:000922
+2026-11-16,csi_dividend,中证红利,5589.29,akshare-csi:000922
 2005-12-30,csi_dividend_lowvol,红利低波,1009.34,akshare-csi:H30269
 2006-01-04,csi_dividend_lowvol,红利低波,1009.34,akshare-csi:H30269
 2006-01-05,csi_dividend_lowvol,红利低波,1032.57,akshare-csi:H30269
@@ -15678,6 +15684,9 @@ day,instrument_id,name,close,source
 2026-11-09,csi_dividend_lowvol,红利低波,11345.8,akshare-csi:H30269
 2026-11-10,csi_dividend_lowvol,红利低波,11298.29,akshare-csi:H30269
 2026-11-11,csi_dividend_lowvol,红利低波,11233.01,akshare-csi:H30269
+2026-11-12,csi_dividend_lowvol,红利低波,11224.01,akshare-csi:H30269
+2026-11-13,csi_dividend_lowvol,红利低波,11363.61,akshare-csi:H30269
+2026-11-16,csi_dividend_lowvol,红利低波,11562.44,akshare-csi:H30269
 2000-01-03,nasdaq100,纳斯达克100,3790.550048828125,yahoo:^NDX:price
 2000-01-04,nasdaq100,纳斯达克100,3546.199951171875,yahoo:^NDX:price
 2000-01-05,nasdaq100,纳斯达克100,3507.31005859375,yahoo:^NDX:price
@@ -32560,3 +32569,4 @@ day,instrument_id,name,close,source
 2026-11-11,value100,价值100,4362.3645,akshare-cni:980081
 2026-11-12,value100,价值100,4332.2566,akshare-cni:980081
 2026-11-13,value100,价值100,4359.3522,akshare-cni:980081
+2026-11-16,value100,价值100,4435.0484,akshare-cni:980081
