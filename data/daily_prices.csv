@@ -22461,6 +22461,7 @@ day,instrument_id,name,close,source
 2026-11-17,nasdaq100,纳斯达克100,27001.779296875,yahoo:^NDX:price
 2026-11-18,nasdaq100,纳斯达克100,27116.259765625,yahoo:^NDX:price
 2026-11-19,nasdaq100,纳斯达克100,26517.05078125,yahoo:^NDX:price
+2026-11-20,nasdaq100,纳斯达克100,25028.98046875,yahoo:^NDX:price
 2000-01-03,sp500,标普500,1455.219970703125,yahoo:^GSPC:price
 2000-01-04,sp500,标普500,1399.4200439453125,yahoo:^GSPC:price
 2000-01-05,sp500,标普500,1402.1099853515625,yahoo:^GSPC:price
@@ -29223,6 +29224,7 @@ day,instrument_id,name,close,source
 2026-11-17,sp500,标普500,7340.52978515625,yahoo:^GSPC:price
 2026-11-18,sp500,标普500,7323.6298828125,yahoo:^GSPC:price
 2026-11-19,sp500,标普500,7175.830078125,yahoo:^GSPC:price
+2026-11-20,sp500,标普500,6910.39013671875,yahoo:^GSPC:price
 2012-12-31,value100,价值100,1000.0,akshare-cni:980081
 2013-01-04,value100,价值100,1000.6886,akshare-cni:980081
 2013-01-07,value100,价值100,1006.4233,akshare-cni:980081
