@@ -3,20 +3,20 @@
   "cycles": {
     "value100": {
       "peak": 4476.7275,
-      "last_close": 4465.096,
-      "last_day": "2026-11-20",
+      "last_close": 4405.2238,
+      "last_day": "2026-11-23",
       "source": "akshare-cni:980081"
     },
     "csi_dividend": {
       "peak": 5594.87,
-      "last_close": 5529.78,
-      "last_day": "2026-11-20",
+      "last_close": 5492.17,
+      "last_day": "2026-11-23",
       "source": "akshare-csi:000922"
     },
     "csi300": {
       "peak": 4113.41,
-      "last_close": 3954.57,
-      "last_day": "2026-11-20",
+      "last_close": 3958.29,
+      "last_day": "2026-11-23",
       "source": "akshare-csi:000300"
     },
     "sp500": {
@@ -33,19 +33,10 @@
     },
     "csi_dividend_lowvol": {
       "peak": 11620.31,
-      "last_close": 11620.31,
-      "last_day": "2026-11-20",
+      "last_close": 11493.88,
+      "last_day": "2026-11-23",
       "source": "akshare-csi:H30269"
     }
   },
-  "pending": [
-    {
-      "id": "nasdaq100:2026-11-20:27197.15039062:25028.98046875",
-      "instrument_id": "nasdaq100",
-      "name": "纳斯达克100",
-      "day": "2026-11-20",
-      "drop_pct": 7.972048140096249,
-      "close": 25028.98046875
-    }
-  ]
+  "pending": []
 }
