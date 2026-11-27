@@ -5317,6 +5317,7 @@ day,instrument_id,name,close,source
 2026-11-24,csi300,沪深300,3963.82,akshare-csi:000300
 2026-11-25,csi300,沪深300,3898.24,akshare-csi:000300
 2026-11-26,csi300,沪深300,3900.55,akshare-csi:000300
+2026-11-27,csi300,沪深300,4063.06,akshare-csi:000300
 2004-12-31,csi_dividend,中证红利,1000.0,akshare-csi:000922
 2005-01-04,csi_dividend,中证红利,981.56,akshare-csi:000922
 2005-01-05,csi_dividend,中证红利,986.54,akshare-csi:000922
@@ -10635,6 +10636,7 @@ day,instrument_id,name,close,source
 2026-11-24,csi_dividend,中证红利,5447.88,akshare-csi:000922
 2026-11-25,csi_dividend,中证红利,5423.75,akshare-csi:000922
 2026-11-26,csi_dividend,中证红利,5480.15,akshare-csi:000922
+2026-11-27,csi_dividend,中证红利,5483.72,akshare-csi:000922
 2005-12-30,csi_dividend_lowvol,红利低波,1009.34,akshare-csi:H30269
 2006-01-04,csi_dividend_lowvol,红利低波,1009.34,akshare-csi:H30269
 2006-01-05,csi_dividend_lowvol,红利低波,1032.57,akshare-csi:H30269
@@ -15711,6 +15713,7 @@ day,instrument_id,name,close,source
 2026-11-24,csi_dividend_lowvol,红利低波,11447.24,akshare-csi:H30269
 2026-11-25,csi_dividend_lowvol,红利低波,11421.83,akshare-csi:H30269
 2026-11-26,csi_dividend_lowvol,红利低波,11507.14,akshare-csi:H30269
+2026-11-27,csi_dividend_lowvol,红利低波,11396.41,akshare-csi:H30269
 2000-01-03,nasdaq100,纳斯达克100,3790.550048828125,yahoo:^NDX:price
 2000-01-04,nasdaq100,纳斯达克100,3546.199951171875,yahoo:^NDX:price
 2000-01-05,nasdaq100,纳斯达克100,3507.31005859375,yahoo:^NDX:price
@@ -32618,3 +32621,4 @@ day,instrument_id,name,close,source
 2026-11-24,value100,价值100,4365.1023,akshare-cni:980081
 2026-11-25,value100,价值100,4343.4663,akshare-cni:980081
 2026-11-26,value100,价值100,4338.1994,akshare-cni:980081
+2026-11-27,value100,价值100,4356.1155,akshare-cni:980081
